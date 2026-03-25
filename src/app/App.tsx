@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Github, Code2, MonitorPlay } from "lucide-react";
+import {Github, Code2, MonitorPlay, LoaderPinwheel} from "lucide-react";
 import { Button } from "./components/ui/button";
 import {
   Card,
@@ -47,8 +47,8 @@ export default function App() {
       <header className="sticky top-0 z-40 w-full border-b bg-white/80 backdrop-blur-md">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 font-semibold tracking-tight text-lg">
-            <MonitorPlay className="w-5 h-5 text-indigo-600" />
-            <span>Student Portfolio</span>
+            <LoaderPinwheel className="w-5 h-5 text-purple-500" />
+            <span>Nathaniel Powers | CS 4300</span>
           </div>
           <nav>
             <Button variant="ghost" asChild>
@@ -76,7 +76,7 @@ export default function App() {
               </Badge>
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mb-6">
                 Graphics, Simulation, <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-500">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-black to-purple-500">
                   and Aesthetics
                 </span>
               </h1>
