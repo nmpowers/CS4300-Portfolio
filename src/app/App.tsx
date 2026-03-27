@@ -31,7 +31,8 @@ const A2 = {
       " are simple and move with reaction to the user. \n\n The user or subject, in this case, is a sphere of passion represented with a saturated variation of colors that shift given the time. Eventually, " +
       "the black waves in the background become \"alive\", and increasingly complex. At this point, we begin to explore how the passions of the individual become both more complex and more polarized from their surroundings as time goes on. The user is both constructed by their environment, while remaining wholly different from it. " +
       "\n\nEventually, and finally, we explore the growth of passion from an individual as time goes on, which may both defy and consume their surroundings in what some would call drowning and others may call liberating. The entire scene is then overwhelmed by this colorful passion, and we view the world through the distortion of the user's sphere, which continues to fold in on itself more and more.\n\n" +
-      "I felt slightly limited in my creation of this piece, just due to the coding environment being slightly new, but I believe that my aesthetic was expressed as intended nonetheless and given the time I had to create. I wanted to explore the combination of patters over time that may generate constructive new patterns in a chaotic and unpredictable way.",
+      "I felt slightly limited in my creation of this piece, just due to the coding environment being slightly new, but I believe that my aesthetic was expressed as intended nonetheless and given the time I had to create. I wanted to explore the combination of patters over time that may generate constructive new patterns in a chaotic and unpredictable way." +
+      "\n\nFeedback: Still In Progress...",
   coverImage:
     a2Thumb,
   media: [
