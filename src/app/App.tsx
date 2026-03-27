@@ -1,5 +1,5 @@
 import * as React from "react";
-import {Github, Code2, MonitorPlay, LoaderPinwheel} from "lucide-react";
+import {Github, Code2, MonitorPlay, LoaderPinwheel, Youtube} from "lucide-react";
 import { Button } from "./components/ui/button";
 import {
   Card,
@@ -18,29 +18,35 @@ import {
   DialogTrigger,
 } from "./components/ui/dialog";
 import { Badge } from "./components/ui/badge";
+import normandiePainting from "../assets/Normandie-Wall-Decor.jpg";
+import a2Thumb from "../assets/A2-thumbnail.png";
 
-// Dummy project
-const DUMMY_PROJECT = {
+const A2 = {
   id: "ex-1",
-  title: "Silly stuff Project",
+  title: "A2: Assignment 1 - Shader Live Coding",
   summary:
-    "Something interesting about Graphics, Simulation, and/or Aesthetics I presume.",
+    "An exploration of WGSL functions used to generate an expressive live coding experience following a specified aesthetic.",
   description:
-    "This is one of the projects of all time.",
+    "Within this assignment I intended to explore themes of what is known as Urban Anonymity, Isolation, and Freedom of Expression. The aesthetic for the piece was inspired by a painting that hangs in my grandmother's house called \"Normandie\" by Frances Butler, featuring a lonesome steamboat. The black lines in the beginning of the piece" +
+      " are simple and move with reaction to the user. \n\n The user or subject, in this case, is a sphere of passion represented with a saturated variation of colors that shift given the time. Eventually, " +
+      "the black waves in the background become \"alive\", and increasingly complex. At this point, we begin to explore how the passions of the individual become both more complex and more polarized from their surroundings as time goes on. The user is both constructed by their environment, while remaining wholly different from it. " +
+      "\n\nEventually, and finally, we explore the growth of passion from an individual as time goes on, which may both defy and consume their surroundings in what some would call drowning and others may call liberating. The entire scene is then overwhelmed by this colorful passion, and we view the world through the distortion of the user's sphere, which continues to fold in on itself more and more.\n\n" +
+      "I felt slightly limited in my creation of this piece, just due to the coding environment being slightly new, but I believe that my aesthetic was expressed as intended nonetheless and given the time I had to create. I wanted to explore the combination of patters over time that may generate constructive new patterns in a chaotic and unpredictable way.",
   coverImage:
-    "#",
+    a2Thumb,
   media: [
     {
       type: "image",
-      url: "#",
+      url: normandiePainting,
     },
   ],
-  tech: ["A cool tool", "WebGL Probably"],
-  repoUrl: "#",
+  tech: ["Live Coding", "WGSL", "Isolation", "Normandie"],
+  repoUrl: "https://charlieroberts.codeberg.page/TheSchwartz/?Ly8gUFJFU1MgQ1RSTCtFTlRFUiBUTyBSRUxPQUQgU0hBREVSCi8vIHJlZmVyZW5jZSBhdCBodHRwczovL2NvZGViZXJnLm9yZy9jaGFybGllcm9iZXJ0cy9UaGVTY2h3YXJ0eiNyZWZlcmVuY2UKLy8gZm9yIHdnc2wgcmVmZXJlbmNlIHNlZSBodHRwczovL3dlYmdwdS5yb2Nrcy93Z3NsL2Z1bmN0aW9ucy9udW1lcmljLwpAZnJhZ21lbnQgCmZuIGZzKCBAYnVpbHRpbihwb3NpdGlvbikgcG9zIDogdmVjNGYgKSAtPiBAbG9jYXRpb24oMCkgdmVjNGYgeyAKCS8vIGdldCBub3JtYWxpemVkIHRleHR1cmUgY29vcmRpbmF0ZXMgKGFrYSB1dikgaW4gcmFuZ2UgMC0xIAoJdmFyIG5wb3MgPSB1dk4oIHBvcy54eSApOyBsZXQgZGlzdCA9IGxlbmd0aChtb3VzZS54eSAtIG5wb3MpOyAKCWxldCBzcG90ID0gMC4xNSAqIHNlY29uZHMoKS8yMDsgCgoJbGV0IHcgPSBzbW9vdGhzdGVwKHNwb3QsIDAuMCwgZGlzdCkgKiAuNjsgCgoJbGV0IG1wb3MgPSBucG9zIC0gKChtb3VzZS54eSAtIG5wb3MpICogdyogc2Vjb25kcygpKTsgCglsZXQgY3BvcyA9IHZlYzJmKDEuMCkgLSBtcG9zOyAKCWxldCByID0gbGVuZ3RoKGNwb3MpICogMi4wOyAKCglsZXQgYSA9IGF0YW4yKGNwb3MueCwgY3Bvcy55KTsgLy8gYm91bmRhcnkgCgl2YXIgZiA9IGFicyhjb3MoYSogMi4wKiBzZWNvbmRzKCkpKSAqIDAuNSArIDAuMzsgCglsZXQgc2hhcGVkID0gciAtIGYgKiBzaW4oc2Vjb25kcygpIC8gMi4wKTsgCgl2YXIgY29sb3IgPSB2ZWMzZihzdGVwKGZyYWN0KGFicyhzaGFwZWQpICogNS4pLCAwLjMpKTsgCgoJaWYoIGRpc3QgPCBzcG90ICkgeyAKCQlsZXQgciA9IGNvcyhzZWNvbmRzKCkpICogMC41ICsgLjU7IAoJCWxldCBnID0gYXNpbihzZWNvbmRzKCkgKyAyLjApICogMC41ICsgMC41OyAKCQlsZXQgYiA9IHNpbihzZWNvbmRzKCkgKyA0LjApICogMC43ICsgMC41OyAKCQljb2xvciA9IGNvbG9yICogdmVjM2YociwgZywgYik7IAoJfSAKCXJldHVybiB2ZWM0Zihjb2xvciwgMS4wKTsgCgp9",
+  videoUrl: "https://youtu.be/HeMhPB_4Tcw",
 };
 
 export default function App() {
-  const projects = [DUMMY_PROJECT];
+  const projects = [A2];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
@@ -209,6 +215,18 @@ export default function App() {
                             View Source Code
                           </a>
                         </Button>
+                        {project.videoUrl && (
+                            <Button variant="outline" className="gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700" asChild>
+                              <a
+                                  href={project.videoUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                              >
+                                <Youtube className="w-4 h-4" />
+                                Watch Video Demo
+                              </a>
+                            </Button>
+                        )}
                       </div>
                     </div>
                   </DialogContent>
