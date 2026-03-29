@@ -21,8 +21,21 @@ import { Badge } from "./components/ui/badge";
 import normandiePainting from "../assets/Normandie-Wall-Decor.jpg";
 import a2Thumb from "../assets/A2-thumbnail.png";
 
+const A3 = {
+  id: "a3",
+  title: "A3: Assignmnet 2 - WebGPU Intro",
+  summary: "...",
+  description: "...",
+  coverImage: "#",
+  media: [],
+  tech: ["WebGPU", "WGSL", "gulls.js", "Video Integration"],
+  repoUrl: "https://github.com/your-repo-link",
+  demoUrl: "/webGPU-Intro/index.html",
+  videoURL: "#",
+};
+
 const A2 = {
-  id: "ex-1",
+  id: "a2",
   title: "A2: Assignment 1 - Shader Live Coding",
   summary:
     "An exploration of WGSL functions used to generate an expressive live coding experience following a specified aesthetic.",
@@ -47,7 +60,7 @@ const A2 = {
 };
 
 export default function App() {
-  const projects = [A2];
+  const projects = [A2, A3];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
@@ -225,6 +238,18 @@ export default function App() {
                               >
                                 <Youtube className="w-4 h-4" />
                                 Watch Video Demo
+                              </a>
+                            </Button>
+                        )}
+                        {project.demoUrl && (
+                            <Button className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white" asChild>
+                              <a
+                                  href={project.demoUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                              >
+                                <MonitorPlay className="w-4 h-4" />
+                                Open Live Demo
                               </a>
                             </Button>
                         )}
