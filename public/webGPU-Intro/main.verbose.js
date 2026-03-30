@@ -1,5 +1,5 @@
-import { default as gulls } from '/public/gulls/gulls.js'
-import { default as Video    } from '/public/gulls/helpers/video.js'
+import { default as gulls } from '/gulls/gulls.js'
+import { default as Video    } from '/gulls/helpers/video.js'
 
 /* video feedback 
  *
