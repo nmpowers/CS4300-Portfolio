@@ -1,13 +1,12 @@
 @group(0) @binding(0) var<uniform> resolution: vec2f;
 @group(0) @binding(1) var videoSampler:   sampler;
 @group(0) @binding(2) var backBuffer:     texture_2d<f32>;
+@group(0) @binding(3) var<uniform> time:  f32;
 @group(1) @binding(0) var videoBuffer:    texture_external;
 
 // 2D Random
-fn random (st : vec2f) -> f32 {
-    return fract(sin(dot(st.xy,
-                         vec2f(12.9898,78.233)))
-                 * 43758.5453123);
+fn random (st : vec2f) -> vec2f {
+    return fract(sin(vec2(dot(st,vec2(127.1,311.7)),dot(st,vec2(269.5,183.3)))) * time * .3);
 }
 
 // Some useful functions
@@ -84,15 +83,45 @@ fn snoise(v : vec2f) -> f32 {
 @fragment 
 fn fs( @builtin(position) pos : vec4f ) -> @location(0) vec4f {
   let p = pos.xy / resolution;
+  var st = p;
   let noiseAmt = snoise(p);
   let nNoise = noiseAmt * 0.5 + 0.5;
 
-  let video = textureSampleBaseClampToEdge( videoBuffer, videoSampler, p);
+  st.x *= resolution.x / resolution.y;
+
+  var color = vec3f(.0);
+
+  // Cell positions
+  var points: array<vec2f, 5>;
+  points[0] = random(vec2f(0.83, 0.75));
+  points[1] = random(vec2f(0.60, 0.07));
+  points[2] = random(vec2f(0.28, 0.64));
+  points[3] = random(vec2f(0.31, 0.26));
+  points[4] = random(vec2f(0.91, 0.12));
+
+  var m_dist = 1.;  // minimum distance
+  var m_point = vec2f(0.0); // min point
+
+  // Iterate through the points positions
+  for (var i = 0; i < 5; i++) {
+    let dist = distance(st, points[i]);
+
+    // Keep the closer distance and point
+    if (dist < m_dist) {
+        m_dist = dist;
+        m_point = points[i];
+    }
+  }
+
+
+  let cellMask = clamp(1.0 - (m_dist * 2.0), 0.0, 1.0); // darken around cell
+  var cellCoord = (st - m_point)  + vec2f(0.5); // put each image inside cell
+
+  let video = textureSampleBaseClampToEdge( videoBuffer, videoSampler, cellCoord);
 
   let fb = textureSample( backBuffer, videoSampler, p );
 
-  let out = video * (1. - nNoise) + fb * nNoise;
+  let out = video * cellMask;
 
   return vec4f( out.rgb, 1. );
 }
-
