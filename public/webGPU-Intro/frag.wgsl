@@ -2,11 +2,12 @@
 @group(0) @binding(1) var videoSampler:   sampler;
 @group(0) @binding(2) var backBuffer:     texture_2d<f32>;
 @group(0) @binding(3) var<uniform> time:  f32;
+@group(0) @binding(4) var<uniform> mouse: vec2f;
 @group(1) @binding(0) var videoBuffer:    texture_external;
 
 // 2D Random
 fn random (st : vec2f) -> vec2f {
-    return fract(sin(vec2(dot(st,vec2(127.1,311.7)),dot(st,vec2(269.5,183.3)))) * time * .3);
+    return fract(sin(vec2f(dot(st,vec2f(127.1,311.7)),dot(st,vec2f(269.5,183.3))))  * 434384.3);
 }
 
 // Some useful functions
@@ -83,45 +84,129 @@ fn snoise(v : vec2f) -> f32 {
 @fragment 
 fn fs( @builtin(position) pos : vec4f ) -> @location(0) vec4f {
   let p = pos.xy / resolution;
-  var st = p;
-  let noiseAmt = snoise(p);
+  let noiseAmt = snoise(p * 2.0 + vec2f(time * 0.2)); // noise for movement
+  var st = p + vec2f(noiseAmt * 0.08); // coef control noise amplification
   let nNoise = noiseAmt * 0.5 + 0.5;
-
+  let scaleAmt = 9.0;
   st.x *= resolution.x / resolution.y;
+  st *= scaleAmt; // make grid
 
+  // mouse coords need match screen
+  var m_pos = mouse;
+  m_pos.x *= resolution.x / resolution.y;
+  m_pos *= scaleAmt;
+
+  let i_st = floor(st);
+  let f_st = fract(st);
   var color = vec3f(.0);
 
-  // Cell positions
-  var points: array<vec2f, 5>;
-  points[0] = random(vec2f(0.83, 0.75));
-  points[1] = random(vec2f(0.60, 0.07));
-  points[2] = random(vec2f(0.28, 0.64));
-  points[3] = random(vec2f(0.31, 0.26));
-  points[4] = random(vec2f(0.91, 0.12));
+  var m_dist = 10.;  // minimum distance
+  var m_dist2 = 10.; // second min dist
+  var m_diff = vec2f(0.0); // center of video
 
-  var m_dist = 1.;  // minimum distance
-  var m_point = vec2f(0.0); // min point
+  // iterate through points around this cell in grid
+  for (var y: i32 = -1; y <= 1; y++) {
+      for (var x: i32 = -1; x <= 1; x++) {
+        let neighbor = vec2f(f32(x), f32(y)); // neighbor place in grid
+        var point_new = random(i_st + neighbor); // rand pos from neighbor and current place in grid
 
-  // Iterate through the points positions
-  for (var i = 0; i < 5; i++) {
-    let dist = distance(st, points[i]);
+        // make new center point go in circle
+        point_new = vec2f(0.5) + vec2f(0.5) * sin(vec2f(time) + 6.2831 * point_new);
 
-    // Keep the closer distance and point
-    if (dist < m_dist) {
-        m_dist = dist;
-        m_point = points[i];
-    }
+        // find point in grid, and find direction from mouse
+        let grid_point = vec2f(i_st) + neighbor + point_new;
+        let mouse_dir = grid_point - m_pos;
+        let dist_mouse = length(mouse_dir);
+        let avoid_amt = smoothstep(1.5, 0.0, dist_mouse); // smooth transition away from mouse
+        point_new += normalize(mouse_dir) * avoid_amt * 0.8; // adds normal amt to point to avoid mouse area
+
+        let diff = neighbor + point_new - f_st; // difference between animated point and current pixel
+        let dist = length(diff);
+
+        // Keep the closer distance and point
+        if (dist < m_dist) {
+            m_dist2 = m_dist;
+            m_dist = dist;
+            m_diff = diff;
+        } else if (dist < m_dist2) {
+            m_dist2 = dist;
+        }
+      }
   }
 
-
-  let cellMask = clamp(1.0 - (m_dist * 2.0), 0.0, 1.0); // darken around cell
-  var cellCoord = (st - m_point)  + vec2f(0.5); // put each image inside cell
+  let diff = m_dist2 - m_dist; // distance between two minimum points
+  let cellMask = smoothstep(0.0, 0.3, diff); // darken around cell smooth
+  var cellCoord = -m_diff * 1.5 + vec2f(0.5); // put each image inside cell centered
+  cellCoord -= abs(sin(7.*m_dist))* time * 0.1; // spinny
 
   let video = textureSampleBaseClampToEdge( videoBuffer, videoSampler, cellCoord);
 
   let fb = textureSample( backBuffer, videoSampler, p );
 
-  let out = video * cellMask;
+  let out = video * cellMask + fb * (1.0 - cellMask) * 0.95;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   return vec4f( out.rgb, 1. );
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

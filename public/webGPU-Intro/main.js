@@ -11,6 +11,15 @@ const back = new Float32Array( gulls.width * gulls.height * 4 )
 const feedback_t = sg.texture( back )
 
 const u_time = sg.uniform(0.0);
+const u_mouse = sg.uniform([0.5, 0.5]);
+let mouseX = 0.5;
+let mouseY = 0.5;
+
+// mouse coords
+window.addEventListener('mousemove', (e) => {
+  mouseX = e.clientX / window.innerWidth;
+  mouseY = e.clientY / window.innerHeight;
+});
 
 const render = await sg.render({
   shader,
@@ -19,12 +28,14 @@ const render = await sg.render({
     sg.sampler(),
     feedback_t,
     u_time,
+    u_mouse,
     sg.video( Video.element )
   ],
   copy: feedback_t,
 
   onframe: () => {
     u_time.value = performance.now() / 1000.0;
+    u_mouse.value = [mouseX, mouseY];
   }
 })
 
