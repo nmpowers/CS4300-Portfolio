@@ -1,5 +1,6 @@
 import { default as gulls } from '/gulls/gulls.js'
 import { default as Video    } from '/gulls/helpers/video.js'
+import { Pane } from 'https://esm.sh/tweakpane';
 
 const sg     = await gulls.init(),
       frag   = await gulls.import( './frag.wgsl' ),
@@ -21,6 +22,27 @@ window.addEventListener('mousemove', (e) => {
   mouseY = e.clientY / window.innerHeight;
 });
 
+// tweak pane stuff
+const paneParams= {
+  noiseSpeed: 0.2,
+  gridScale: 9.0,
+  warpAmt: 0.1,
+  avoidance: 0.8,
+};
+
+const pane = new Pane();
+pane.addBinding(paneParams, 'noiseSpeed', { min: 0.0, max: 2.0, label: 'Noise Speed' });
+pane.addBinding(paneParams, 'gridScale',  { min: 1.0, max: 20.0, label: 'Grid Scale' });
+pane.addBinding(paneParams, 'warpAmt', { min: 0.0, max: 1.0, label: 'Cell Warp' });
+pane.addBinding(paneParams, 'avoidance',  { min: -2.0, max: 3.0, label: 'Mouse Avoidance' });
+
+const u_pane_params = sg.uniform([
+  paneParams.noiseSpeed,
+  paneParams.gridScale,
+  paneParams.warpAmt,
+  paneParams.avoidance
+]);
+
 const render = await sg.render({
   shader,
   data:[
@@ -29,6 +51,7 @@ const render = await sg.render({
     feedback_t,
     u_time,
     u_mouse,
+    u_pane_params,
     sg.video( Video.element )
   ],
   copy: feedback_t,
@@ -36,6 +59,12 @@ const render = await sg.render({
   onframe: () => {
     u_time.value = performance.now() / 1000.0;
     u_mouse.value = [mouseX, mouseY];
+    u_pane_params.value = [
+      paneParams.noiseSpeed,
+      paneParams.gridScale,
+      paneParams.warpAmt,
+      paneParams.avoidance
+    ];
   }
 })
 

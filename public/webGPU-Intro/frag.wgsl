@@ -3,6 +3,7 @@
 @group(0) @binding(2) var backBuffer:     texture_2d<f32>;
 @group(0) @binding(3) var<uniform> time:  f32;
 @group(0) @binding(4) var<uniform> mouse: vec2f;
+@group(0) @binding(5) var<uniform> params: vec4f;
 @group(1) @binding(0) var videoBuffer:    texture_external;
 
 // 2D Random
@@ -84,10 +85,10 @@ fn snoise(v : vec2f) -> f32 {
 @fragment 
 fn fs( @builtin(position) pos : vec4f ) -> @location(0) vec4f {
   let p = pos.xy / resolution;
-  let noiseAmt = snoise(p * 2.0 + vec2f(time * 0.2)); // noise for movement
+  let noiseAmt = snoise(p * 2.0 + vec2f(time * params[0])); // noise for movement
   var st = p + vec2f(noiseAmt * 0.08); // coef control noise amplification
   let nNoise = noiseAmt * 0.5 + 0.5;
-  let scaleAmt = 9.0;
+  let scaleAmt = params[1];
   st.x *= resolution.x / resolution.y;
   st *= scaleAmt; // make grid
 
@@ -115,10 +116,10 @@ fn fs( @builtin(position) pos : vec4f ) -> @location(0) vec4f {
 
         // find point in grid, and find direction from mouse
         let grid_point = vec2f(i_st) + neighbor + point_new;
-        let mouse_dir = grid_point - m_pos;
+        let mouse_dir = grid_point - m_pos + vec2f(0.0001);
         let dist_mouse = length(mouse_dir);
         let avoid_amt = smoothstep(1.5, 0.0, dist_mouse); // smooth transition away from mouse
-        point_new += normalize(mouse_dir) * avoid_amt * 0.8; // adds normal amt to point to avoid mouse area
+        point_new += normalize(mouse_dir) * avoid_amt * params[3]; // adds normal amt to point to avoid mouse area
 
         let diff = neighbor + point_new - f_st; // difference between animated point and current pixel
         let dist = length(diff);
@@ -137,7 +138,7 @@ fn fs( @builtin(position) pos : vec4f ) -> @location(0) vec4f {
   let diff = m_dist2 - m_dist; // distance between two minimum points
   let cellMask = smoothstep(0.0, 0.3, diff); // darken around cell smooth
   var cellCoord = -m_diff * 1.5 + vec2f(0.5); // put each image inside cell centered
-  cellCoord -= abs(sin(7.*m_dist))* time * 0.1; // spinny
+  cellCoord -= abs(sin(7.*m_dist))* time * params[2]; // spinny
 
   let video = textureSampleBaseClampToEdge( videoBuffer, videoSampler, cellCoord);
 
