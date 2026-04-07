@@ -20,16 +20,27 @@ import {
 import { Badge } from "./components/ui/badge";
 import normandiePainting from "../assets/Normandie-Wall-Decor.jpg";
 import a2Thumb from "../assets/A2-thumbnail.png";
+import a3Thumb from "../assets/A3-thumbnail.png"
+import a3cells from "../assets/A3-media1.jpg";
 
 const A3 = {
   id: "a3",
   title: "A3: Assignmnet 2 - WebGPU Intro",
-  summary: "...",
-  description: "...",
-  coverImage: "#",
-  media: [],
+  summary: "An application of cellular noise and webcam input to exemplify a fractured version of your reflection.",
+  description: "In this assignment, I applied simplex noise and a pseudo-random function to animate input from a user's webcam into " +
+      "a fractured set of repeated reflections, which shifts as time goes on. The aesthetic of this assignment is somewhat organic, with the cell-like shapes that shift and react to the user's mouse, " +
+      "which is meant to evoke a feeling of fractured identity amongst the user. There is a pane of parameters featured in the top right corner of the shader that can tweak the speed of the noise, the amount of reaction the mouse will get from " +
+      "the cells (the force of the mouse), the amount of webcam warping inside each cell, and the size of the cell grid on the screen.\n\n" +
+      "The shader applies a cellular grid using smooth steps to emulate an almost liquid combination of the cells, and then applies a simplex noise by Ian McEwan, Ashima Arts in combination with a random function to shift the cells " +
+      "around the scene in some random way. The coordinate of the mouse is registered as a vertex to be \"avoided\" by other cells, and the other cells therefore react as to avoid the location of the mouse.\n\n" +
+      "Feedback: ...",
+  coverImage: a3Thumb,
+  media: [{
+    type: "image",
+    url: a3cells,
+  },],
   tech: ["WebGPU", "WGSL", "gulls.js", "Video Integration"],
-  repoUrl: "https://github.com/your-repo-link",
+  repoUrl: "https://github.com/nmpowers/CS4300-Portfolio/tree/main/public/webGPU-Intro",
   demoUrl: "/webGPU-Intro/index.html",
   videoURL: "#",
 };
