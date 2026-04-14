@@ -22,7 +22,22 @@ import normandiePainting from "../assets/Normandie-Wall-Decor.jpg";
 import a2Thumb from "../assets/A2-thumbnail.png";
 import a3Thumb from "../assets/A3-thumbnail.png"
 import a3cells from "../assets/A3-media1.jpg";
+import a4Thumb from "../assets/A4-thumbnail.png"
 
+const A4 = {
+  id: "a3",
+  title: "A4: Reaction Diffusion",
+  summary: "A dislpay of the reaction diffusion algorithm running on the GPU with various parameter options.",
+  description: "In this assignment, I implemented the Reaction-Diffusion algorithm described by Karl Sims with a laplacian relation between two substances. I have integrated " +
+      "a tweakpane panel for editing the feed rate, kill rate, and diffusion amount for either substance. These parameters are quite fragile in terms of allowing the darker substance on the screen (in this case substance B) to actually survive with an interesting pattern, so the" +
+      " parameters must be edited very slightly. I have also implemented a mouse interaction so that the user can spawn in new B substance seeds throughout the screen by clicking the mouse. This is helpful for seeing the reaction even after B has initially died out without having to refresh the page to default values.\n\n" +
+      "Additionally, I have implemented orientation parameters, which allows the user to stretch the diffusion more in one direction (x or y) than another. Ths makes a very slight difference in the animation of the RD, but is slightly noticable when watching the pattern grow.",
+  coverImage: ,
+  tech: ["WebGPU", "WGSL", "gulls.js", "Video Integration"],
+  repoUrl: "https://github.com/nmpowers/CS4300-Portfolio/tree/main/public/game-of-life",
+  demoUrl: "/game-of-life/index.html",
+  videoURL: "#",
+};
 const A3 = {
   id: "a3",
   title: "A3: Assignmnet 2 - WebGPU Intro",
@@ -71,7 +86,7 @@ const A2 = {
 };
 
 export default function App() {
-  const projects = [A2, A3];
+  const projects = [A2, A3, A4];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
