@@ -33,6 +33,7 @@ const A4 = {
       " parameters must be edited very slightly. I have also implemented a mouse interaction so that the user can spawn in new B substance seeds throughout the screen by clicking the mouse. This is helpful for seeing the reaction even after B has initially died out without having to refresh the page to default values.\n\n" +
       "Additionally, I have implemented orientation parameters, which allows the user to stretch the diffusion more in one direction (x or y) than another. Ths makes a very slight difference in the animation of the RD, but is slightly noticable when watching the pattern grow.",
   coverImage: a4Thumb ,
+  media: [],
   tech: ["WebGPU", "WGSL", "gulls.js", "Video Integration"],
   repoUrl: "https://github.com/nmpowers/CS4300-Portfolio/tree/main/public/game-of-life",
   demoUrl: "/game-of-life/index.html",
