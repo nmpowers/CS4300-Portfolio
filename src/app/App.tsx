@@ -22,10 +22,29 @@ import normandiePainting from "../assets/Normandie-Wall-Decor.jpg";
 import a2Thumb from "../assets/A2-thumbnail.png";
 import a3Thumb from "../assets/A3-thumbnail.png"
 import a3cells from "../assets/A3-media1.jpg";
-import a4Thumb from "../assets/A4-thumbnail.png"
+import a4Thumb from "../assets/A4-thumbnail.png";
+import a5Thumb from "../assets/A5-thumbnail.png";
 
+const A5 = {
+  id: "a5",
+  title: "A5: Particle Simulation (Confetti Clicks)",
+  summary: "A display of confetti (or fireworks depending on gravity) for your next celebration!",
+  description: "This project is meant to showcase a particle simulation using WebGPU through HTML and javascript files. \n\n I implemented a simple gravity-based " +
+      "simulation of particles that are randomly colored and burst across the screen in reaction to a user's click. A compute shader is used to update the velocity and position of the " +
+      "quad particles from the vertex shader using a gravity value set by the user. \n\n The height and width of the burst of particles that occurs on every click is determined by two velocity parameters (X and Y) to be set by the user " +
+      "in addition to the lifespan of the particle before it dies off, and the number of particles spawned in one burst. A single burst has a randomly determined color, and a single particle has a random velocity (direction and magnitude) and speed augmented by the user's tweaks. \n\n" +
+      "I wanted to hit an aesthetic that reminds the user of birthday confetti in old 8-bit games or fireworks. With gravity set higher, the particles look a little more like confetti, and with lower gravity they shoot out into every direction linearly like a firework. \n\n" +
+      "Feedback: After showing this to one of my friends from out side the class they had two major takeaways. The first one was that the style definitely touched upon confetti, and playing around with the particles was fun, especially when tweaking some of the parameters. The other one was that they wished they could " +
+      "have presets for styles like \"Fireworks\", \"Confetti\", etc where the parameters are preset for them. Additionally, they wanted more style customization over the shape of the particles, like making them hearts or circles, etc. Overall, they indicated the tool was fun to use and they were curious on how it worked to simulate that many particles at once so easily (they are an ECE major). ",
+  coverImage: a5Thumb ,
+  media: [],
+  tech: ["WebGPU", "WGSL", "gulls.js", "Particles"],
+  repoUrl: "https://github.com/nmpowers/CS4300-Portfolio/tree/main/public/particles",
+  demoUrl: "/particles/index.html",
+  videoURL: "#",
+};
 const A4 = {
-  id: "a3",
+  id: "a4",
   title: "A4: Reaction Diffusion",
   summary: "A dislpay of the reaction diffusion algorithm running on the GPU with various parameter options.",
   description: "In this assignment, I implemented the Reaction-Diffusion algorithm described by Karl Sims with a laplacian relation between two substances. I have integrated " +
@@ -87,7 +106,7 @@ const A2 = {
 };
 
 export default function App() {
-  const projects = [A2, A3, A4];
+  const projects = [A2, A3, A4, A5];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
