@@ -24,7 +24,26 @@ import a3Thumb from "../assets/A3-thumbnail.png"
 import a3cells from "../assets/A3-media1.jpg";
 import a4Thumb from "../assets/A4-thumbnail.png";
 import a5Thumb from "../assets/A5-thumbnail.png";
+import a6Thumb from "../assets/A6-thumbnail.png";
 
+const A6 = {
+  id: "a6",
+  title: "A6: Vants Simulation",
+  summary: "A variation of the vants simulation with turmite and deposit follower alternatives ",
+  description: "This project is meant to showcase variations on the vants simulation. I integrated two alternative behaviors for the vants compared to the original," +
+      "the first of which is somewhat like a \'Turmite\' behavior, which uses three states. The ant reads a cell state and determines an action using the turn direction and the new cell state. This leads to a sort've circular behavior in the ants like a turmite.\n\n" +
+      "The second behavior is a more direct follower than the original ants, while dropping a decaying scent trail. This makes it so that ants flock together more than the original.\n\n" +
+      "I implemented a Tweakpane set of parameters that allows for the user to edit the values for the follower ants trail decay, the amount of decay released, and the distance that the ants can sense forward for pheromones. Additionally, the pane allows for the user to switch" +
+      " between the different modes of behavior." +
+      "\n\nI have noticed that the follower behavior ends up making giant rails of highways based on the shape made with the decay lines, that very rarely break. Additionally, the termite behavior leads to giant lines dug out by the termites, however the spiral " +
+      "pattern leads to most of the ants staying near their spawning location, and colliding into each other's space.",
+  coverImage: a6Thumb ,
+  media: [],
+  tech: ["WebGPU", "WGSL", "gulls.js", "Vants"],
+  repoUrl: "https://github.com/nmpowers/CS4300-Portfolio/tree/main/public/vants",
+  demoUrl: "/vants/index.html",
+  videoURL: "#",
+};
 const A5 = {
   id: "a5",
   title: "A5: Particle Simulation (Confetti Clicks)",
@@ -106,7 +125,7 @@ const A2 = {
 };
 
 export default function App() {
-  const projects = [A2, A3, A4, A5];
+  const projects = [A2, A3, A4, A5, A6];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
