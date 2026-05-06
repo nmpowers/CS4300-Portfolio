@@ -26,6 +26,18 @@ import a4Thumb from "../assets/A4-thumbnail.png";
 import a5Thumb from "../assets/A5-thumbnail.png";
 import a6Thumb from "../assets/A6-thumbnail.png";
 
+const FINAL = {
+  id: "FINAL",
+  title: "FINAL: Gaussian Splat Viewer with Re-lighting (from scratch)",
+  summary: "A Gaussian Splat viewer for use with 3D generation tools, allowing re-lighting and real-time filtering",
+  description: "Description coming SOON!...",
+  coverImage: '#' ,
+  media: [],
+  tech: ["WebGPU", "WGSL", "Gaussian Splats", "3D Viewer"],
+  repoUrl: "https://github.com/nmpowers/CS4300-Portfolio/tree/main/public/FINAL",
+  demoUrl: "./FINAL/index.html",
+  videoURL: "#",
+};
 const A6 = {
   id: "a6",
   title: "A6: Vants Simulation",
@@ -125,7 +137,7 @@ const A2 = {
 };
 
 export default function App() {
-  const projects = [A2, A3, A4, A5, A6];
+  const projects = [A2, A3, A4, A5, A6, FINAL];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
