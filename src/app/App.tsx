@@ -25,13 +25,21 @@ import a3cells from "../assets/A3-media1.jpg";
 import a4Thumb from "../assets/A4-thumbnail.png";
 import a5Thumb from "../assets/A5-thumbnail.png";
 import a6Thumb from "../assets/A6-thumbnail.png";
+import FINALThumb from "../assets/FINAL-Thumbnail.png"
 
 const FINAL = {
   id: "FINAL",
   title: "FINAL: Gaussian Splat Viewer with Re-lighting (from scratch)",
   summary: "A Gaussian Splat viewer for use with 3D generation tools, allowing re-lighting and real-time filtering",
-  description: "Description coming SOON!...",
-  coverImage: '#' ,
+  description: "This project implements Option 2 and 4 from the project description, by using a cited re-lighting model from Andrew Chan to light Gaussian Splats using a frame buffer to recover normals from depth, and then applying a bilateral filter for smoothness of the lighting." +
+      " The core features of this viewer are meant to aid comparisons between gaussian splat models that have associated mesh reconstructions so the user can look at them easily without going to another application. \n\n" +
+      "These features include multi-format rendering for both .glb objects in mesh mode and .ply's in splat mode, vertex color reconstruction using the splat file data to color the object rather than using a texture, mesh lighting, lighting control using keys, and interactive modes using the mouse to rotate the objects imported into the scene.\n\n" +
+      "The controls for all features are as follows: WASD for camera translations, E/Q for camera up down movement, arrow keys for model movement, Mouse for rotation of models. Additionally in mesh mode: L - main light toggle, K - Project shadows Toggle, G - Glass mode toggle, 1 - Diffuse lighting toggle, 2 - Specular lighting toggle\n\n" +
+      "The buttons on the html side of the page allow for the user to upload custom .ply or .glb objects into the scene, switch between mesh and splat mode, and tweak parameters for the bilateral filter and lighting model for splats. This simulates lighting in a way that is unlike mesh lighting in typical engines like Unity or Three.js. I have used my background in 3D graphics and visuals to " +
+      "complete this visualizer, which helps me with purposes for my MQP this year, although this was completed after my MQP ended so it is never actually going to be used for its true purpose (unfortunate).\n\n" +
+      "Technical challenges for this project included the parsing of splats, which was handled by a custom parsing method, WebGL 2.0 integration for splat reconstruction (it allowed for better matrix functions), the bilateral filter math implementation, and creating a dual rendering pipeline for meshes and splats with separate matrices and array handling.\n\n" +
+      "For use of the tool, click the live demo link, and download a .ply with a corresponding .glb, or get example files from this project's repository page from the github link below in /FINAL/testModels.",
+  coverImage: FINALThumb,
   media: [],
   tech: ["WebGPU", "WGSL", "Gaussian Splats", "3D Viewer"],
   repoUrl: "https://github.com/nmpowers/CS4300-Portfolio/tree/main/public/FINAL",
