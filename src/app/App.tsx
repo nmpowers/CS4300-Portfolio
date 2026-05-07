@@ -44,7 +44,7 @@ const FINAL = {
   tech: ["WebGPU", "WGSL", "Gaussian Splats", "3D Viewer"],
   repoUrl: "https://github.com/nmpowers/CS4300-Portfolio/tree/main/public/FINAL",
   demoUrl: "./FINAL/index.html",
-  videoURL: "#",
+  videoURL: "https://youtu.be/hj5ySiQRVEo",
 };
 const A6 = {
   id: "a6",
