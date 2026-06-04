@@ -26,6 +26,24 @@ import a4Thumb from "../assets/A4-thumbnail.png";
 import a5Thumb from "../assets/A5-thumbnail.png";
 import a6Thumb from "../assets/A6-thumbnail.png";
 import FINALThumb from "../assets/FINAL-Thumbnail.png"
+import waterThumb from "../assets/water-thumbnail.svg";
+
+const WATER = {
+  id: "water",
+  title: "Pixelated Water (Poetry in the Rain)",
+  summary: "A rain-stippled, pixelated sea seen from the bottom of a well — click to add your own raindrop, rippling the water and surfacing a glowing verse of poetry.",
+  description: "This is a shader piece for an ongoing art series, built in the same WebGPU + gulls.js HTML/JavaScript format as my other shaders (a compute shader driving ping-pong storage buffers, feeding a fragment shader).\n\n" +
+      "The water is a height-field wave simulation: each cell stores a height and velocity, and an explicit wave-equation integrator (a laplacian of the surrounding heights) spreads every disturbance outward as rippling rings, bouncing off the reflective edges of the pool. A faint, multi-octave brownian (fbm) swell rolls underneath so the surface is never fully still.\n\n" +
+      "Constant rain peppers the surface with tiny dimples every frame, churning it into a restless, choppy sea. When you click, you simply add one more (slightly larger) raindrop of your own — there is nothing special about you here, you are just another drop in the storm.\n\n" +
+      "The whole scene is lit as if you are gazing up from the bottom of a well: a faint, cool disc of daylight is reflected on the water, its edges shimmering as the ripples bend the surface, while a heavy vignette darkens the damp walls closing in around that pool of light. A Blinn-Phong specular term sparkles only where the rain catches that reflected light.\n\n" +
+      "Each raindrop you place also carries the next verse of a poem, rasterized to a texture and floating in the water — glowing white, refracted by the ripples, and slowly dissolving against drifting noise after you have had time to read it. The verses advance one per drop and loop back to the beginning after the last. Drops are debounced, so hammering the mouse still yields a single, readable verse at a time. The poem itself lives in a clearly marked array at the top of the source, so any poem can be dropped in.\n\n" +
+      "A Tweakpane panel exposes the water (pixel size, wave speed, damping, base swell, ripple height), the rain (rate, strength, drop size, and the click's own strength/size), and the well light (pool size, brightness, well depth/vignette, shimmer, and light angle).",
+  coverImage: waterThumb,
+  media: [],
+  tech: ["WebGPU", "WGSL", "gulls.js", "Wave Sim"],
+  repoUrl: "https://github.com/nmpowers/CS4300-Portfolio/tree/main/public/water",
+  demoUrl: "/water/index.html",
+};
 
 const FINAL = {
   id: "FINAL",
@@ -145,7 +163,7 @@ const A2 = {
 };
 
 export default function App() {
-  const projects = [A2, A3, A4, A5, A6, FINAL];
+  const projects = [A2, A3, A4, A5, A6, FINAL, WATER];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">

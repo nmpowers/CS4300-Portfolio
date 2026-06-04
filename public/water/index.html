@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang='en'>
+<head>
+    <meta charset='utf-8'>
+    <title>Pixelated Water</title>
+    <script src='main.js' type='module'></script>
+    <script src='https://cdn.jsdelivr.net/npm/microlight@latest'></script>
+
+    <link href='../gulls/howtos/shared.css' rel='stylesheet'>
+    <link rel='shortcut icon' href='data:image/x-icon;,' type='image/x-icon'>
+    <style>
+        #hint {
+            position: fixed;
+            bottom: 1.25em;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: rgba(220, 235, 255, 0.45);
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 0.95rem;
+            letter-spacing: 0.08em;
+            pointer-events: none;
+            text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+            transition: opacity 2s ease;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+<canvas></canvas>
+<div id='hint'>click the water to drop a verse</div>
+</body>
+</html>
