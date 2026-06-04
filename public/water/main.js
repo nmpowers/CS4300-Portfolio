@@ -123,7 +123,7 @@ function drawVerse( verse, cx, cy ) {
 }
 
 // ---- droplet input (debounced so verses can't be spammed) -------------------
-const COOLDOWN = 6.0; // seconds: a new drop+verse is ignored until this elapses
+const COOLDOWN = 1.0; // seconds: a new drop+verse is ignored until this elapses
 const HOLD     = 3.5; // seconds the verse stays fully readable
 const FADE     = 2.5; // seconds it then takes to dissolve away
 
@@ -161,7 +161,7 @@ sg.canvas.addEventListener('mousedown', e => {
 
 // ---- tweakable parameters ----------------------------------------------------
 const params = {
-    pixelSize:     6.0,
+    pixelSize:     2.0,
     waveSpeed:     0.47,
     damping:       0.994,
     slack:         0.9992,
