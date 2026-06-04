@@ -121,13 +121,13 @@ fn fs( @builtin(position) pos: vec4f ) -> @location(0) vec4f {
     let refr = normal.xy * 0.018;          // ripples bend the text (refraction)
     let suv  = uv + refr;
 
-    // dissolve as it fades: erode the text against drifting noise
+    // each verse carries its own fade baked into the texture's alpha, so the
+    // dissolve is driven per-pixel: as a verse's alpha drops it erodes against
+    // drifting noise, independently of any other verse floating nearby.
     let dn   = fbm( uv * 38.0 + vec2f( 0.0, u.x * 0.25 ) );
-    let diss = smoothstep( 0.0, 0.45, u.y - dn * 0.55 );
+    let core = smoothstep( 0.0, 0.5, sampleText( suv ) - dn * 0.5 );
 
-    let core = sampleText( suv ) * diss;
-
-    // soft white glow halo from a ring of samples
+    // soft white glow halo from a ring of samples (fades with the alpha too)
     var glow = 0.0;
     let g = 2.2 / res.y;
     glow += sampleText( suv + vec2f(  g,  0.0 ) );
@@ -138,7 +138,7 @@ fn fs( @builtin(position) pos: vec4f ) -> @location(0) vec4f {
     glow += sampleText( suv + vec2f( -g,  g  ) );
     glow += sampleText( suv + vec2f(  g, -g  ) );
     glow += sampleText( suv + vec2f( -g, -g  ) );
-    glow = ( glow / 8.0 ) * diss;
+    glow = glow / 8.0;
 
     let textColor = vec3f( 0.85, 0.93, 1.0 );
     col += textColor * glow * 0.8;                 // halo, brightened by crests

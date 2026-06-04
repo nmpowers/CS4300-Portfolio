@@ -80,46 +80,79 @@ function uploadText() {
 }
 uploadText(); // start blank
 
-// word-wrap + draw a verse centred near the click point, then push to the GPU
-function drawVerse( verse, cx, cy ) {
-    tctx.clearRect( 0, 0, w, h );
-    tctx.fillStyle    = 'white';
-    tctx.textAlign    = 'center';
-    tctx.textBaseline = 'middle';
+// every verse currently floating in the water, each with its own spawn time so
+// it lives out its full lifespan even when newer verses are dropped on top of it
+const activeVerses = [];
 
+// word-wrap a verse at its click point and freeze its layout (positions are
+// computed once; only its opacity changes as it ages)
+function makeVerse( verse, cx, cy, now ) {
     const fontSize = Math.round( Math.min( w, h ) * 0.045 );
     const lineH    = fontSize * 1.4;
     const maxWidth = w * 0.7;
-    tctx.font = `${fontSize}px Georgia, "Times New Roman", serif`;
+    const font     = `${fontSize}px Georgia, "Times New Roman", serif`;
+    tctx.font = font;
 
-    // build wrapped lines, honouring explicit line breaks
-    const lines = [];
+    const wrapped = [];
     for( const raw of verse.split('\n') ) {
         const words = raw.split(' ');
         let line = '';
         for( const word of words ) {
             const test = line ? line + ' ' + word : word;
             if( tctx.measureText( test ).width > maxWidth && line ) {
-                lines.push( line );
+                wrapped.push( line );
                 line = word;
             } else {
                 line = test;
             }
         }
-        lines.push( line );
+        wrapped.push( line );
     }
 
-    // clamp the block so it stays comfortably on screen
-    const blockH = lines.length * lineH;
-    let y = Math.min( Math.max( cy, blockH * 0.5 + 20 ), h - blockH * 0.5 - 20 );
+    const blockH = wrapped.length * lineH;
+    const y = Math.min( Math.max( cy, blockH * 0.5 + 20 ), h - blockH * 0.5 - 20 );
     const x = Math.min( Math.max( cx, maxWidth * 0.5 + 20 ), w - maxWidth * 0.5 - 20 );
-    y -= blockH * 0.5 - lineH * 0.5;
 
-    for( const line of lines ) {
-        tctx.fillText( line, x, y );
-        y += lineH;
+    return { wrapped, x, font, lineH, yStart: y - ( blockH * 0.5 - lineH * 0.5 ), spawn: now };
+}
+
+// opacity for a verse: fully visible for HOLD seconds, then fades over FADE
+function verseAlpha( v, now ) {
+    const age = now - v.spawn;
+    if( age < HOLD ) return 1.0;
+    return Math.max( 0.0, 1.0 - ( age - HOLD ) / FADE );
+}
+
+// recomposite every active verse onto the text canvas (their baked-in alpha
+// carries each one's fade), drop the expired ones, and push it to the GPU
+let textHasContent = false;
+function renderVerses( now ) {
+    for( let i = activeVerses.length - 1; i >= 0; i-- ) {
+        if( now - activeVerses[ i ].spawn >= HOLD + FADE ) activeVerses.splice( i, 1 );
     }
+
+    if( activeVerses.length === 0 ) {
+        if( textHasContent ) { tctx.clearRect( 0, 0, w, h ); uploadText(); textHasContent = false; }
+        return;
+    }
+
+    tctx.clearRect( 0, 0, w, h );
+    tctx.fillStyle    = 'white';
+    tctx.textAlign    = 'center';
+    tctx.textBaseline = 'middle';
+
+    for( const v of activeVerses ) {
+        tctx.globalAlpha = verseAlpha( v, now );
+        tctx.font = v.font;
+        let y = v.yStart;
+        for( const str of v.wrapped ) {
+            tctx.fillText( str, v.x, y );
+            y += v.lineH;
+        }
+    }
+    tctx.globalAlpha = 1.0;
     uploadText();
+    textHasContent = true;
 }
 
 // ---- droplet input (debounced so verses can't be spammed) -------------------
@@ -137,23 +170,22 @@ const u_rain   = sg.uniform( rainData );
 
 let verseIndex = 0;
 let lastDrop   = -999;
-let dropTime   = -999;
 const startTime = performance.now() / 1000;
 
 const hint = document.getElementById('hint');
 
 sg.canvas.addEventListener('mousedown', e => {
     const now = performance.now() / 1000;
-    if( now - lastDrop < COOLDOWN ) return; // debounce: one drop at a time
+    if( now - lastDrop < COOLDOWN ) return; // debounce: one drop per cooldown
     lastDrop = now;
-    dropTime = now;
 
     dropData[0] = e.clientX;
     dropData[1] = e.clientY;
     dropData[2] = params.dropStrength; // consumed for a single sim step
     dropData[3] = params.dropRadius;
 
-    drawVerse( poem[ verseIndex ], e.clientX, e.clientY );
+    // add this verse to the water; earlier verses keep floating until they fade
+    activeVerses.push( makeVerse( poem[ verseIndex ], e.clientX, e.clientY, now ) );
     verseIndex = ( verseIndex + 1 ) % poem.length;
 
     if( hint ) hint.style.opacity = '0';
@@ -212,12 +244,11 @@ const renderPass = await sg.render({
     data: [ res, pingpong, u_frag, u_light, textSampler, textTexture, u_well ],
     onframe: () => {
         const now = performance.now() / 1000;
-        const since = now - dropTime;
-        let fade = 0.0;
-        if( since < HOLD )      fade = 1.0;
-        else                    fade = Math.max( 0.0, 1.0 - ( since - HOLD ) / FADE );
 
-        u_frag.value = [ now - startTime, fade, params.pixelSize, params.noise ];
+        // redraw every floating verse at its current opacity (per-verse fade)
+        renderVerses( now );
+
+        u_frag.value = [ now - startTime, 0.0, params.pixelSize, params.noise ];
 
         const a = params.lightAngle;
         u_light.value = [ Math.cos(a) * 0.6, Math.sin(a) * 0.6, 0.6, params.heightScale ];
