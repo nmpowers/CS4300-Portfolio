@@ -171,7 +171,7 @@ export default function App() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 font-semibold tracking-tight text-lg">
             <LoaderPinwheel className="w-5 h-5 text-purple-500" />
-            <span>Nathaniel Powers | CS 4300</span>
+            <span>Nathaniel Powers | Graphics Projects</span>
           </div>
           <nav>
             <Button variant="ghost" asChild>
@@ -195,7 +195,7 @@ export default function App() {
                 variant="secondary"
                 className="mb-6 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200"
               >
-                CS 4300 Portfolio
+                Visualization and Rendering Projects
               </Badge>
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mb-6">
                 Graphics, Simulation, <br />
@@ -204,8 +204,8 @@ export default function App() {
                 </span>
               </h1>
               <p className="text-lg md:text-xl text-slate-600 mb-8 leading-relaxed">
-                Welcome to my CS 4300 Course Portfolio Thing! This website serves as a public
-                showcase for my assignments for CS 4300. Information on projects can be found below.
+                Welcome to my Shader Portfolio Thing! This website serves as a public
+                showcase for my assignments from CS 4300 at WPI, along with other shader projects I am working on. Information on projects can be found below.
               </p>
               <div className="flex justify-center gap-4">
                 <Button size="lg" className="rounded-full shadow-sm" asChild>
