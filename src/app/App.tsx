@@ -26,11 +26,11 @@ import a4Thumb from "../assets/A4-thumbnail.png";
 import a5Thumb from "../assets/A5-thumbnail.png";
 import a6Thumb from "../assets/A6-thumbnail.png";
 import FINALThumb from "../assets/FINAL-Thumbnail.png"
-import waterThumb from "../assets/water-thumbnail.svg";
+import waterThumb from "../assets/water-Thumbnail.png";
 
 const WATER = {
   id: "water",
-  title: "Pixelated Water (Poetry in the Rain)",
+  title: "Water Well Poetry (\"back down the well\")",
   summary: "A rain-stippled, pixelated sea seen from the bottom of a well — click to add your own raindrop, rippling the water and surfacing a glowing verse of poetry.",
   description: "This is a shader piece for an ongoing art series, built in the same WebGPU + gulls.js HTML/JavaScript format as my other shaders (a compute shader driving ping-pong storage buffers, feeding a fragment shader).\n\n" +
       "The water is a height-field wave simulation: each cell stores a height and velocity, and an explicit wave-equation integrator (a laplacian of the surrounding heights) spreads every disturbance outward as rippling rings, bouncing off the reflective edges of the pool. A faint, multi-octave brownian (fbm) swell rolls underneath so the surface is never fully still.\n\n" +
@@ -40,7 +40,7 @@ const WATER = {
       "A Tweakpane panel exposes the water (pixel size, wave speed, damping, base swell, ripple height), the rain (rate, strength, drop size, and the click's own strength/size), and the well light (pool size, brightness, well depth/vignette, shimmer, and light angle).",
   coverImage: waterThumb,
   media: [],
-  tech: ["WebGPU", "WGSL", "gulls.js", "Wave Sim"],
+  tech: ["Art", "WGSL", "gulls.js", "Wave Sim"],
   repoUrl: "https://github.com/nmpowers/CS4300-Portfolio/tree/main/public/water",
   demoUrl: "/water/index.html",
 };
