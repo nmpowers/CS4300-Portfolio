@@ -27,6 +27,23 @@ import a5Thumb from "../assets/A5-thumbnail.png";
 import a6Thumb from "../assets/A6-thumbnail.png";
 import FINALThumb from "../assets/FINAL-Thumbnail.png"
 import waterThumb from "../assets/water-Thumbnail.png";
+import deepBlueThumb from "../assets/deep-blue-thumbnail.svg";
+
+const DEEP_BLUE = {
+  id: "deep-blue",
+  title: "Deep Blue (a poem-game in nine rooms)",
+  summary: "A pixelated top-down poem-game: walk through nine superliminal white rooms, watch the verses of \"Deep Blue\" appear one line at a time, and finally dissolve into the sea the poem has been about all along.",
+  description: "Deep Blue is a short, playable shader piece built around a poem I wrote about letting someone go not because they are bad for you, but because you cannot give them back what they give you — about temptation and pragmatism, and about love that comes up after it has ended in ways you do not expect.\n\n" +
+      "The game is rendered entirely on the GPU in the same WebGPU + gulls.js HTML/JavaScript format as my other shader projects. A single fragment shader procedurally draws every room: a pixelated (16-bit-ish) top-down white space, a light-blue player character, a deep-blue NPC who waits at the far end of each room, one symbolic artifact (a heart, an eighth note, a spiral, an island, a smudge of soot, an anchor, a breaking wave, a teardrop) and the current line of the poem as a subtitle.\n\n" +
+      "You move with WASD or the arrow keys. As you approach the deep-blue character at the end of each room, they dissolve in front of you (pixel by pixel, via a noise threshold) and reappear at the far end of the next room. Each room plays its stanza one line at a time; once the last line has had its full lifespan, walking to the right edge advances you to the next room. As the rooms go by your character gradually transitions from light blue to the deep sea blue of the title — and the NPC transitions in the opposite direction, from deep blue to white, washed clean.\n\n" +
+      "The final stanza opens into a huge white room with a deep blue sea at the bottom, rendered with the same height-field wave simulation as my Water Well Poetry piece — a compute shader running an explicit wave-equation integrator on a ping-pong height/velocity buffer. Walking south, the player meets the water; every footstep drops a real ripple into the sim, and the character pixel-dissolves into the surface. \"By Nathaniel Powers\" then surfaces in white inside the waves, and the whole frame slowly fades to black.\n\n" +
+      "Technically the piece is one render pass + one compute pass. The fragment shader does all of the rendering — pixelating the screen, drawing the two characters as small head-plus-body sprites (silhouetted with a noise-based dissolve mask), compositing the water surface in the final room with a Blinn-Phong lighting model over the height-field gradient, and overlaying an offscreen 2D canvas that holds the current room's artifact, the current subtitle line, and the end-game credits. The compute pass runs the wave sim continuously but is only visually used in the last room. The poem, the per-stanza artifact, and the colour palette for the two characters all live in a single data array at the top of the source so the whole thing is easy to read and tweak.",
+  coverImage: deepBlueThumb,
+  media: [],
+  tech: ["Art", "WGSL", "gulls.js", "Top-down Game"],
+  repoUrl: "https://github.com/nmpowers/CS4300-Portfolio/tree/main/public/deep-blue",
+  demoUrl: "/deep-blue/index.html",
+};
 
 const WATER = {
   id: "water",
@@ -163,7 +180,7 @@ const A2 = {
 };
 
 export default function App() {
-  const projects = [A2, A3, A4, A5, A6, FINAL, WATER];
+  const projects = [A2, A3, A4, A5, A6, FINAL, WATER, DEEP_BLUE];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">

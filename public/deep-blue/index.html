@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang='en'>
+<head>
+    <meta charset='utf-8'>
+    <title>Deep Blue</title>
+    <script src='main.js' type='module'></script>
+    <link href='../gulls/howtos/shared.css' rel='stylesheet'>
+    <link rel='shortcut icon' href='data:image/x-icon;,' type='image/x-icon'>
+    <style>
+        body { background: white; }
+        #hint {
+            position: fixed;
+            bottom: 1.25em;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: rgba(60, 80, 110, 0.55);
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 0.85rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            pointer-events: none;
+            transition: opacity 1.6s ease;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+<canvas></canvas>
+<div id='hint'>WASD or arrow keys to move</div>
+</body>
+</html>

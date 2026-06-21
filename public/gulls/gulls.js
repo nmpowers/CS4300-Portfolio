@@ -583,7 +583,7 @@ const gulls = {
   },
 
   render( encoder, passDesc ) {
-    const shouldCopy = passDesc.context !== null || passDesc.copy !== nulll
+    const shouldCopy = passDesc.context !== null || passDesc.copy !== null
 
     const renderPassDescriptor = {
       label: 'render',
@@ -988,6 +988,10 @@ const gulls = {
     async once( ...passes ) {
       const encoder = this.device.createCommandEncoder({ label: 'gulls encoder' })
       for( let pass of passes ) {
+        if( pass.type === 'render' && pass.context !== null ) {
+          pass.view = pass.context.getCurrentTexture().createView()
+        }
+
         try {
           if( typeof pass.onframe === 'function' ) await pass.onframe()
         } catch(e) {
