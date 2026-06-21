@@ -279,6 +279,7 @@ function nextRoom() {
     game.saved    = false;
     game.saveProgress = 0;
     game.pianoClicks  = 0;
+    game.tetherTug    = 0;
 
     if (game.room === 5) {
         game.npc.u = 0.5; game.npc.v = 0.5;
@@ -403,15 +404,34 @@ function step() {
         let frameSpeed = SPEED;
         if (game.room === 5) {
             let distFromNpc = distUV(game.player, game.npc);
-            if (distFromNpc > 0.55 && !game.saved) {
-                game.saved = true;
-            }
             
             if (!game.saved) {
                 let dirU = game.npc.u - game.player.u;
                 let dirV = game.npc.v - game.player.v;
                 let magPull = Math.hypot(dirU, dirV);
+                
                 if (magPull > 0) {
+                    let awayU = -dirU / magPull;
+                    let awayV = -dirV / magPull;
+                    let inputMag = Math.hypot(du, dv);
+                    
+                    if (inputMag > 0) {
+                        let pullDot = (du / inputMag) * awayU + (dv / inputMag) * awayV;
+                        if (pullDot > 0.3) {
+                            game.tetherTug += dt;
+                        } else {
+                            game.tetherTug = Math.max(0, game.tetherTug - dt * 2.0);
+                        }
+                    } else {
+                        game.tetherTug = Math.max(0, game.tetherTug - dt * 2.0);
+                    }
+                    
+                    if (game.tetherTug > 1.5) { // 1.5 seconds of sustained tugging
+                        game.saved = true;
+                    }
+                }
+                
+                if (!game.saved && magPull > 0) {
                     du += (dirU / magPull) * 0.45;
                     dv += (dirV / magPull) * 0.45;
                 }

@@ -396,6 +396,9 @@ fn fs( @builtin(position) fragPos: vec4f ) -> @location(0) vec4f {
     let ov = textureSampleLevel( overlayTex, samp, textUV, 0.0 );
     var finalAlpha = ov.a;
     
+    // Fix Canvas 2D 8-bit rounding asymptote which leaves faint trails
+    finalAlpha = max(0.0, (finalAlpha - 0.03) / 0.97);
+    
     // Apply dissolve transition to the subtitle text
     if (textUV.y > 0.81 && finalAlpha > 0.0) {
         let dissolveAlpha = u_view.y;
