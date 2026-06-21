@@ -1,5 +1,5 @@
 import * as React from "react";
-import {Github, Code2, MonitorPlay, LoaderPinwheel, Youtube} from "lucide-react";
+import { Github, Code2, MonitorPlay, LoaderPinwheel, Youtube } from "lucide-react";
 import { Button } from "./components/ui/button";
 import {
   Card,
@@ -27,18 +27,39 @@ import a5Thumb from "../assets/A5-thumbnail.png";
 import a6Thumb from "../assets/A6-thumbnail.png";
 import FINALThumb from "../assets/FINAL-Thumbnail.png"
 import waterThumb from "../assets/water-Thumbnail.png";
-import deepBlueThumb from "../assets/deep-blue-thumbnail.svg";
+import deepBlueThumb from "../assets/Deep-Blue-thumbnail.png";
+
+const SHINGLES = {
+  id: "shingles",
+  title: "Shingles On The Roof",
+  summary: "A 1800s Parisian roofscape shader that traces the progression of a single day, paired with a poem about the mundane foundations of our lives.",
+  description: "A procedural raymarching shader exploring the toils and hard work we put into everything we create. Seen from slightly above the rooftops of 1800s Paris, the city stretches out towards an Eiffel Tower silhouette on the horizon.\n\n" +
+    "The environment goes through a full day cycle: sunrise, midday, dusk, and late night. The passage of time is linked directly to the lines of the poem 'Shingles On The Roof', such that when the final verse plays, the city is plunged into darkness and the window lights slowly begin to turn off one by one.\n\n" +
+    "\"Shingles On The Roof\" By Nathaniel Powers\n\n" +
+    "smoke stacks,\nchimneys,\nand shingles\non the roof.\n\n" +
+    "I’m always looking,\ntoward the top,\nat things I need to prove.\n\n" +
+    "dull and grey,\nbut firmly set\nupon a foundation\nof sweat and grit.\n\n" +
+    "so that’s the plan\nmy eyes look on:\nto work through prose,\ndespite all cons.\n\n" +
+    "and my life will sit\nin idle state,\nas bricks are laid;\nall one in the same.\n\n" +
+    "so one day,\ni’ll have been built,\nand all my work\nwill lay distilled\n\n" +
+    "in smoke stacks,\nchimneys,\nand shingles\non the roof.",
+  coverImage: deepBlueThumb,
+  media: [],
+  tech: ["Art", "WGSL", "gulls.js", "Raymarching"],
+  repoUrl: "https://github.com/nmpowers/CS4300-Portfolio/tree/main/public/shingles",
+  demoUrl: "/shingles/index.html",
+};
 
 const DEEP_BLUE = {
   id: "deep-blue",
   title: "Deep Blue (a poem-game in nine rooms)",
   summary: "A pixelated top-down poem-game: walk through nine superliminal white rooms, watch the verses of \"Deep Blue\" appear one line at a time, and finally dissolve into the sea the poem has been about all along.",
   description: "Deep Blue is a short, playable shader piece built around a poem I wrote about letting someone go not because they are bad for you, but because you cannot give them back what they give you — about temptation and pragmatism, and about love that comes up after it has ended in ways you do not expect.\n\n" +
-      "The game is rendered entirely on the GPU in the same WebGPU + gulls.js HTML/JavaScript format as my other shader projects. A single fragment shader procedurally draws every room: a pixelated (16-bit-ish) top-down white space, a light-blue player character, a deep-blue NPC who waits at the far end of each room, one symbolic artifact (a heart, an eighth note, a spiral, an island, a smudge of soot, an anchor, a breaking wave, a teardrop) and the current line of the poem as a subtitle.\n\n" +
-      "You move with WASD or the arrow keys. As you approach the deep-blue character at the end of each room, they dissolve in front of you (pixel by pixel, via a noise threshold) and reappear at the far end of the next room. Each room plays its stanza one line at a time; once the last line has had its full lifespan, walking to the right edge advances you to the next room. As the rooms go by your character gradually transitions from light blue to the deep sea blue of the title — and the NPC transitions in the opposite direction, from deep blue to white, washed clean.\n\n" +
-      "The final stanza opens into a huge white room with a deep blue sea at the bottom, rendered with the same height-field wave simulation as my Water Well Poetry piece — a compute shader running an explicit wave-equation integrator on a ping-pong height/velocity buffer. Walking south, the player meets the water; every footstep drops a real ripple into the sim, and the character pixel-dissolves into the surface. \"By Nathaniel Powers\" then surfaces in white inside the waves, and the whole frame slowly fades to black.\n\n" +
-      "Technically the piece is one render pass + one compute pass. The fragment shader does all of the rendering — pixelating the screen, drawing the two characters as small head-plus-body sprites (silhouetted with a noise-based dissolve mask), compositing the water surface in the final room with a Blinn-Phong lighting model over the height-field gradient, and overlaying an offscreen 2D canvas that holds the current room's artifact, the current subtitle line, and the end-game credits. The compute pass runs the wave sim continuously but is only visually used in the last room. The poem, the per-stanza artifact, and the colour palette for the two characters all live in a single data array at the top of the source so the whole thing is easy to read and tweak.\n\n" +
-      "\"Deep Blue\" By Nathaniel Powers\n\nDeep Blue\nthis is the end\nof me\nand you\n\nevery time\nyou call to me,\na sinking song\nof love and peace.\n\nAnd I fall\nso deeply down\nsinking swiftly\ninto soothing sound.\n\nfar too much\nfor my shallow heart;\nthe land and I\ndrifting apart.\n\noh deep blue-\nI’m no good,\nyou don’t deserve\nto wash my soot\n\nall the time,\nI feel drawn back,\nbut I remember\nthe care I lack.\n\nSo break your waves,\nand drown me out,\nbecause with my love\ncomes hints of doubt,\n\nand everywhere\nthat I go\nI see aqua skies,\nand the tears in your eyes\n\nso i’m forever,\nin your debt;\noh deep blue\nthis is the end.",
+    "The game is rendered entirely on the GPU in the same WebGPU + gulls.js HTML/JavaScript format as my other shader projects. A single fragment shader procedurally draws every room: a pixelated (16-bit-ish) top-down white space, a light-blue player character, a deep-blue NPC who waits at the far end of each room, one symbolic artifact (a heart, an eighth note, a spiral, an island, a smudge of soot, an anchor, a breaking wave, a teardrop) and the current line of the poem as a subtitle.\n\n" +
+    "You move with WASD or the arrow keys. As you approach the deep-blue character at the end of each room, they dissolve in front of you (pixel by pixel, via a noise threshold) and reappear at the far end of the next room. Each room plays its stanza one line at a time; once the last line has had its full lifespan, walking to the right edge advances you to the next room. As the rooms go by your character gradually transitions from light blue to the deep sea blue of the title — and the NPC transitions in the opposite direction, from deep blue to white, washed clean.\n\n" +
+    "The final stanza opens into a huge white room with a deep blue sea at the bottom, rendered with the same height-field wave simulation as my Water Well Poetry piece — a compute shader running an explicit wave-equation integrator on a ping-pong height/velocity buffer. Walking south, the player meets the water; every footstep drops a real ripple into the sim, and the character pixel-dissolves into the surface. \"By Nathaniel Powers\" then surfaces in white inside the waves, and the whole frame slowly fades to black.\n\n" +
+    "Technically the piece is one render pass + one compute pass. The fragment shader does all of the rendering — pixelating the screen, drawing the two characters as small head-plus-body sprites (silhouetted with a noise-based dissolve mask), compositing the water surface in the final room with a Blinn-Phong lighting model over the height-field gradient, and overlaying an offscreen 2D canvas that holds the current room's artifact, the current subtitle line, and the end-game credits. The compute pass runs the wave sim continuously but is only visually used in the last room. The poem, the per-stanza artifact, and the colour palette for the two characters all live in a single data array at the top of the source so the whole thing is easy to read and tweak.\n\n" +
+    "\"Deep Blue\" By Nathaniel Powers\n\nDeep Blue\nthis is the end\nof me\nand you\n\nevery time\nyou call to me,\na sinking song\nof love and peace.\n\nAnd I fall\nso deeply down\nsinking swiftly\ninto soothing sound.\n\nfar too much\nfor my shallow heart;\nthe land and I\ndrifting apart.\n\noh deep blue-\nI’m no good,\nyou don’t deserve\nto wash my soot\n\nall the time,\nI feel drawn back,\nbut I remember\nthe care I lack.\n\nSo break your waves,\nand drown me out,\nbecause with my love\ncomes hints of doubt,\n\nand everywhere\nthat I go\nI see aqua skies,\nand the tears in your eyes\n\nso i’m forever,\nin your debt;\noh deep blue\nthis is the end.",
   coverImage: deepBlueThumb,
   media: [],
   tech: ["Art", "WGSL", "gulls.js", "Top-down Game"],
@@ -51,11 +72,11 @@ const WATER = {
   title: "Water Well Poetry (\"back down the well\")",
   summary: "A rain-stippled, pixelated sea seen from the bottom of a well — click to add your own raindrop, rippling the water and surfacing a glowing verse of poetry.",
   description: "This is a shader piece for an ongoing art series, built in the same WebGPU + gulls.js HTML/JavaScript format as my other shaders (a compute shader driving ping-pong storage buffers, feeding a fragment shader).\n\n" +
-      "The water is a height-field wave simulation: each cell stores a height and velocity, and an explicit wave-equation integrator (a laplacian of the surrounding heights) spreads every disturbance outward as rippling rings, bouncing off the reflective edges of the pool. A faint, multi-octave brownian (fbm) swell rolls underneath so the surface is never fully still.\n\n" +
-      "Constant rain peppers the surface with tiny dimples every frame, churning it into a restless, choppy sea. When you click, you simply add one more (slightly larger) raindrop of your own — there is nothing special about you here, you are just another drop in the storm.\n\n" +
-      "The whole scene is lit as if you are gazing up from the bottom of a well: a faint, cool disc of daylight is reflected on the water, its edges shimmering as the ripples bend the surface, while a heavy vignette darkens the damp walls closing in around that pool of light. A Blinn-Phong specular term sparkles only where the rain catches that reflected light.\n\n" +
-      "Each raindrop you place also carries the next verse of a poem, rasterized to a texture and floating in the water — glowing white, refracted by the ripples, and slowly dissolving against drifting noise after you have had time to read it. The verses advance one per drop and loop back to the beginning after the last. Drops are debounced, so hammering the mouse still yields a single, readable verse at a time. The poem itself lives in a clearly marked array at the top of the source, so any poem can be dropped in.\n\n" +
-      "A Tweakpane panel exposes the water (pixel size, wave speed, damping, base swell, ripple height), the rain (rate, strength, drop size, and the click's own strength/size), and the well light (pool size, brightness, well depth/vignette, shimmer, and light angle).",
+    "The water is a height-field wave simulation: each cell stores a height and velocity, and an explicit wave-equation integrator (a laplacian of the surrounding heights) spreads every disturbance outward as rippling rings, bouncing off the reflective edges of the pool. A faint, multi-octave brownian (fbm) swell rolls underneath so the surface is never fully still.\n\n" +
+    "Constant rain peppers the surface with tiny dimples every frame, churning it into a restless, choppy sea. When you click, you simply add one more (slightly larger) raindrop of your own — there is nothing special about you here, you are just another drop in the storm.\n\n" +
+    "The whole scene is lit as if you are gazing up from the bottom of a well: a faint, cool disc of daylight is reflected on the water, its edges shimmering as the ripples bend the surface, while a heavy vignette darkens the damp walls closing in around that pool of light. A Blinn-Phong specular term sparkles only where the rain catches that reflected light.\n\n" +
+    "Each raindrop you place also carries the next verse of a poem, rasterized to a texture and floating in the water — glowing white, refracted by the ripples, and slowly dissolving against drifting noise after you have had time to read it. The verses advance one per drop and loop back to the beginning after the last. Drops are debounced, so hammering the mouse still yields a single, readable verse at a time. The poem itself lives in a clearly marked array at the top of the source, so any poem can be dropped in.\n\n" +
+    "A Tweakpane panel exposes the water (pixel size, wave speed, damping, base swell, ripple height), the rain (rate, strength, drop size, and the click's own strength/size), and the well light (pool size, brightness, well depth/vignette, shimmer, and light angle).",
   coverImage: waterThumb,
   media: [],
   tech: ["Art", "WGSL", "gulls.js", "Wave Sim"],
@@ -68,13 +89,13 @@ const FINAL = {
   title: "FINAL: Gaussian Splat Viewer with Re-lighting (from scratch)",
   summary: "A Gaussian Splat viewer for use with 3D generation tools, allowing re-lighting and real-time filtering",
   description: "This project implements Option 2 and 4 from the project description, by using a cited re-lighting model from Andrew Chan to light Gaussian Splats using a frame buffer to recover normals from depth, and then applying a bilateral filter for smoothness of the lighting." +
-      " The core features of this viewer are meant to aid comparisons between gaussian splat models that have associated mesh reconstructions so the user can look at them easily without going to another application. \n\n" +
-      "These features include multi-format rendering for both .glb objects in mesh mode and .ply's in splat mode, vertex color reconstruction using the splat file data to color the object rather than using a texture, mesh lighting, lighting control using keys, and interactive modes using the mouse to rotate the objects imported into the scene.\n\n" +
-      "The controls for all features are as follows: WASD for camera translations, E/Q for camera up down movement, arrow keys for model movement, Mouse for rotation of models. Additionally in mesh mode: L - main light toggle, K - Project shadows Toggle, G - Glass mode toggle, 1 - Diffuse lighting toggle, 2 - Specular lighting toggle\n\n" +
-      "The buttons on the html side of the page allow for the user to upload custom .ply or .glb objects into the scene, switch between mesh and splat mode, and tweak parameters for the bilateral filter and lighting model for splats. This simulates lighting in a way that is unlike mesh lighting in typical engines like Unity or Three.js. I have used my background in 3D graphics and visuals to " +
-      "complete this visualizer, which helps me with purposes for my MQP this year, although this was completed after my MQP ended so it is never actually going to be used for its true purpose (unfortunate).\n\n" +
-      "Technical challenges for this project included the parsing of splats, which was handled by a custom parsing method, WebGL 2.0 integration for splat reconstruction (it allowed for better matrix functions), the bilateral filter math implementation, and creating a dual rendering pipeline for meshes and splats with separate matrices and array handling.\n\n" +
-      "For use of the tool, click the live demo link, and download a .ply with a corresponding .glb, or get example files from this project's repository page from the github link below in /FINAL/testModels.",
+    " The core features of this viewer are meant to aid comparisons between gaussian splat models that have associated mesh reconstructions so the user can look at them easily without going to another application. \n\n" +
+    "These features include multi-format rendering for both .glb objects in mesh mode and .ply's in splat mode, vertex color reconstruction using the splat file data to color the object rather than using a texture, mesh lighting, lighting control using keys, and interactive modes using the mouse to rotate the objects imported into the scene.\n\n" +
+    "The controls for all features are as follows: WASD for camera translations, E/Q for camera up down movement, arrow keys for model movement, Mouse for rotation of models. Additionally in mesh mode: L - main light toggle, K - Project shadows Toggle, G - Glass mode toggle, 1 - Diffuse lighting toggle, 2 - Specular lighting toggle\n\n" +
+    "The buttons on the html side of the page allow for the user to upload custom .ply or .glb objects into the scene, switch between mesh and splat mode, and tweak parameters for the bilateral filter and lighting model for splats. This simulates lighting in a way that is unlike mesh lighting in typical engines like Unity or Three.js. I have used my background in 3D graphics and visuals to " +
+    "complete this visualizer, which helps me with purposes for my MQP this year, although this was completed after my MQP ended so it is never actually going to be used for its true purpose (unfortunate).\n\n" +
+    "Technical challenges for this project included the parsing of splats, which was handled by a custom parsing method, WebGL 2.0 integration for splat reconstruction (it allowed for better matrix functions), the bilateral filter math implementation, and creating a dual rendering pipeline for meshes and splats with separate matrices and array handling.\n\n" +
+    "For use of the tool, click the live demo link, and download a .ply with a corresponding .glb, or get example files from this project's repository page from the github link below in /FINAL/testModels.",
   coverImage: FINALThumb,
   media: [],
   tech: ["WebGPU", "WGSL", "Gaussian Splats", "3D Viewer"],
@@ -87,13 +108,13 @@ const A6 = {
   title: "A6: Vants Simulation",
   summary: "A variation of the vants simulation with turmite and deposit follower alternatives ",
   description: "This project is meant to showcase variations on the vants simulation. I integrated two alternative behaviors for the vants compared to the original," +
-      "the first of which is somewhat like a \'Turmite\' behavior, which uses three states. The ant reads a cell state and determines an action using the turn direction and the new cell state. This leads to a sort've circular behavior in the ants like a turmite.\n\n" +
-      "The second behavior is a more direct follower than the original ants, while dropping a decaying scent trail. This makes it so that ants flock together more than the original.\n\n" +
-      "I implemented a Tweakpane set of parameters that allows for the user to edit the values for the follower ants trail decay, the amount of decay released, and the distance that the ants can sense forward for pheromones. Additionally, the pane allows for the user to switch" +
-      " between the different modes of behavior." +
-      "\n\nI have noticed that the follower behavior ends up making giant rails of highways based on the shape made with the decay lines, that very rarely break. Additionally, the termite behavior leads to giant lines dug out by the termites, however the spiral " +
-      "pattern leads to most of the ants staying near their spawning location, and colliding into each other's space.",
-  coverImage: a6Thumb ,
+    "the first of which is somewhat like a \'Turmite\' behavior, which uses three states. The ant reads a cell state and determines an action using the turn direction and the new cell state. This leads to a sort've circular behavior in the ants like a turmite.\n\n" +
+    "The second behavior is a more direct follower than the original ants, while dropping a decaying scent trail. This makes it so that ants flock together more than the original.\n\n" +
+    "I implemented a Tweakpane set of parameters that allows for the user to edit the values for the follower ants trail decay, the amount of decay released, and the distance that the ants can sense forward for pheromones. Additionally, the pane allows for the user to switch" +
+    " between the different modes of behavior." +
+    "\n\nI have noticed that the follower behavior ends up making giant rails of highways based on the shape made with the decay lines, that very rarely break. Additionally, the termite behavior leads to giant lines dug out by the termites, however the spiral " +
+    "pattern leads to most of the ants staying near their spawning location, and colliding into each other's space.",
+  coverImage: a6Thumb,
   media: [],
   tech: ["WebGPU", "WGSL", "gulls.js", "Vants"],
   repoUrl: "https://github.com/nmpowers/CS4300-Portfolio/tree/main/public/vants",
@@ -105,13 +126,13 @@ const A5 = {
   title: "A5: Particle Simulation (Confetti Clicks)",
   summary: "A display of confetti (or fireworks depending on gravity) for your next celebration!",
   description: "This project is meant to showcase a particle simulation using WebGPU through HTML and javascript files. \n\n I implemented a simple gravity-based " +
-      "simulation of particles that are randomly colored and burst across the screen in reaction to a user's click. A compute shader is used to update the velocity and position of the " +
-      "quad particles from the vertex shader using a gravity value set by the user. \n\n The height and width of the burst of particles that occurs on every click is determined by two velocity parameters (X and Y) to be set by the user " +
-      "in addition to the lifespan of the particle before it dies off, and the number of particles spawned in one burst. A single burst has a randomly determined color, and a single particle has a random velocity (direction and magnitude) and speed augmented by the user's tweaks. \n\n" +
-      "I wanted to hit an aesthetic that reminds the user of birthday confetti in old 8-bit games or fireworks. With gravity set higher, the particles look a little more like confetti, and with lower gravity they shoot out into every direction linearly like a firework. \n\n" +
-      "Feedback: After showing this to one of my friends from out side the class they had two major takeaways. The first one was that the style definitely touched upon confetti, and playing around with the particles was fun, especially when tweaking some of the parameters. The other one was that they wished they could " +
-      "have presets for styles like \"Fireworks\", \"Confetti\", etc where the parameters are preset for them. Additionally, they wanted more style customization over the shape of the particles, like making them hearts or circles, etc. Overall, they indicated the tool was fun to use and they were curious on how it worked to simulate that many particles at once so easily (they are an ECE major). ",
-  coverImage: a5Thumb ,
+    "simulation of particles that are randomly colored and burst across the screen in reaction to a user's click. A compute shader is used to update the velocity and position of the " +
+    "quad particles from the vertex shader using a gravity value set by the user. \n\n The height and width of the burst of particles that occurs on every click is determined by two velocity parameters (X and Y) to be set by the user " +
+    "in addition to the lifespan of the particle before it dies off, and the number of particles spawned in one burst. A single burst has a randomly determined color, and a single particle has a random velocity (direction and magnitude) and speed augmented by the user's tweaks. \n\n" +
+    "I wanted to hit an aesthetic that reminds the user of birthday confetti in old 8-bit games or fireworks. With gravity set higher, the particles look a little more like confetti, and with lower gravity they shoot out into every direction linearly like a firework. \n\n" +
+    "Feedback: After showing this to one of my friends from out side the class they had two major takeaways. The first one was that the style definitely touched upon confetti, and playing around with the particles was fun, especially when tweaking some of the parameters. The other one was that they wished they could " +
+    "have presets for styles like \"Fireworks\", \"Confetti\", etc where the parameters are preset for them. Additionally, they wanted more style customization over the shape of the particles, like making them hearts or circles, etc. Overall, they indicated the tool was fun to use and they were curious on how it worked to simulate that many particles at once so easily (they are an ECE major). ",
+  coverImage: a5Thumb,
   media: [],
   tech: ["WebGPU", "WGSL", "gulls.js", "Particles"],
   repoUrl: "https://github.com/nmpowers/CS4300-Portfolio/tree/main/public/particles",
@@ -123,10 +144,10 @@ const A4 = {
   title: "A4: Reaction Diffusion",
   summary: "A dislpay of the reaction diffusion algorithm running on the GPU with various parameter options.",
   description: "In this assignment, I implemented the Reaction-Diffusion algorithm described by Karl Sims with a laplacian relation between two substances. I have integrated " +
-      "a tweakpane panel for editing the feed rate, kill rate, and diffusion amount for either substance. These parameters are quite fragile in terms of allowing the darker substance on the screen (in this case substance B) to actually survive with an interesting pattern, so the" +
-      " parameters must be edited very slightly. I have also implemented a mouse interaction so that the user can spawn in new B substance seeds throughout the screen by clicking the mouse. This is helpful for seeing the reaction even after B has initially died out without having to refresh the page to default values.\n\n" +
-      "Additionally, I have implemented orientation parameters, which allows the user to stretch the diffusion more in one direction (x or y) than another. Ths makes a very slight difference in the animation of the RD, but is slightly noticable when watching the pattern grow.",
-  coverImage: a4Thumb ,
+    "a tweakpane panel for editing the feed rate, kill rate, and diffusion amount for either substance. These parameters are quite fragile in terms of allowing the darker substance on the screen (in this case substance B) to actually survive with an interesting pattern, so the" +
+    " parameters must be edited very slightly. I have also implemented a mouse interaction so that the user can spawn in new B substance seeds throughout the screen by clicking the mouse. This is helpful for seeing the reaction even after B has initially died out without having to refresh the page to default values.\n\n" +
+    "Additionally, I have implemented orientation parameters, which allows the user to stretch the diffusion more in one direction (x or y) than another. Ths makes a very slight difference in the animation of the RD, but is slightly noticable when watching the pattern grow.",
+  coverImage: a4Thumb,
   media: [],
   tech: ["WebGPU", "WGSL", "gulls.js", "Video Integration"],
   repoUrl: "https://github.com/nmpowers/CS4300-Portfolio/tree/main/public/game-of-life",
@@ -138,12 +159,12 @@ const A3 = {
   title: "A3: Assignmnet 2 - WebGPU Intro",
   summary: "An application of cellular noise and webcam input to exemplify a fractured version of your reflection.",
   description: "In this assignment, I applied simplex noise and a pseudo-random function to animate input from a user's webcam into " +
-      "a fractured set of repeated reflections, which shifts as time goes on. The aesthetic of this assignment is somewhat organic, with the cell-like shapes that shift and react to the user's mouse, " +
-      "which is meant to evoke a feeling of fractured identity amongst the user. There is a pane of parameters featured in the top right corner of the shader that can tweak the speed of the noise, the amount of reaction the mouse will get from " +
-      "the cells (the force of the mouse), the amount of webcam warping inside each cell, and the size of the cell grid on the screen.\n\n" +
-      "The shader applies a cellular grid using smooth steps to emulate an almost liquid combination of the cells, and then applies a simplex noise by Ian McEwan, Ashima Arts in combination with a random function to shift the cells " +
-      "around the scene in some random way. The coordinate of the mouse is registered as a vertex to be \"avoided\" by other cells, and the other cells therefore react as to avoid the location of the mouse.\n\n" +
-      "Feedback: ...",
+    "a fractured set of repeated reflections, which shifts as time goes on. The aesthetic of this assignment is somewhat organic, with the cell-like shapes that shift and react to the user's mouse, " +
+    "which is meant to evoke a feeling of fractured identity amongst the user. There is a pane of parameters featured in the top right corner of the shader that can tweak the speed of the noise, the amount of reaction the mouse will get from " +
+    "the cells (the force of the mouse), the amount of webcam warping inside each cell, and the size of the cell grid on the screen.\n\n" +
+    "The shader applies a cellular grid using smooth steps to emulate an almost liquid combination of the cells, and then applies a simplex noise by Ian McEwan, Ashima Arts in combination with a random function to shift the cells " +
+    "around the scene in some random way. The coordinate of the mouse is registered as a vertex to be \"avoided\" by other cells, and the other cells therefore react as to avoid the location of the mouse.\n\n" +
+    "Feedback: ...",
   coverImage: a3Thumb,
   media: [{
     type: "image",
@@ -162,11 +183,11 @@ const A2 = {
     "An exploration of WGSL functions used to generate an expressive live coding experience following a specified aesthetic.",
   description:
     "Within this assignment I intended to explore themes of what is known as Urban Anonymity, Isolation, and Freedom of Expression. The aesthetic for the piece was inspired by a painting that hangs in my grandmother's house called \"Normandie\" by Frances Butler, featuring a lonesome steamboat. The black lines in the beginning of the piece" +
-      " are simple and move with reaction to the user. \n\n The user or subject, in this case, is a sphere of passion represented with a saturated variation of colors that shift given the time. Eventually, " +
-      "the black waves in the background become \"alive\", and increasingly complex. At this point, we begin to explore how the passions of the individual become both more complex and more polarized from their surroundings as time goes on. The user is both constructed by their environment, while remaining wholly different from it. " +
-      "\n\nEventually, and finally, we explore the growth of passion from an individual as time goes on, which may both defy and consume their surroundings in what some would call drowning and others may call liberating. The entire scene is then overwhelmed by this colorful passion, and we view the world through the distortion of the user's sphere, which continues to fold in on itself more and more.\n\n" +
-      "I felt slightly limited in my creation of this piece, just due to the coding environment being slightly new, but I believe that my aesthetic was expressed as intended nonetheless and given the time I had to create. I wanted to explore the combination of patters over time that may generate constructive new patterns in a chaotic and unpredictable way." +
-      "\n\nFeedback: After showing this piece to Cole Bennett, he remarked that it evoked a feeling of creativity amongst what seems to be \" other boring elements\" , referring to the black lines opposing the colorful circle. This is close to the aesthetic I was going for as mentioned above, but not as in detail as I imagined. Additionally, he was interested in how I made the lines distort around the mouse, which is a technique I had picked up from my previous computer graphics course.",
+    " are simple and move with reaction to the user. \n\n The user or subject, in this case, is a sphere of passion represented with a saturated variation of colors that shift given the time. Eventually, " +
+    "the black waves in the background become \"alive\", and increasingly complex. At this point, we begin to explore how the passions of the individual become both more complex and more polarized from their surroundings as time goes on. The user is both constructed by their environment, while remaining wholly different from it. " +
+    "\n\nEventually, and finally, we explore the growth of passion from an individual as time goes on, which may both defy and consume their surroundings in what some would call drowning and others may call liberating. The entire scene is then overwhelmed by this colorful passion, and we view the world through the distortion of the user's sphere, which continues to fold in on itself more and more.\n\n" +
+    "I felt slightly limited in my creation of this piece, just due to the coding environment being slightly new, but I believe that my aesthetic was expressed as intended nonetheless and given the time I had to create. I wanted to explore the combination of patters over time that may generate constructive new patterns in a chaotic and unpredictable way." +
+    "\n\nFeedback: After showing this piece to Cole Bennett, he remarked that it evoked a feeling of creativity amongst what seems to be \" other boring elements\" , referring to the black lines opposing the colorful circle. This is close to the aesthetic I was going for as mentioned above, but not as in detail as I imagined. Additionally, he was interested in how I made the lines distort around the mouse, which is a technique I had picked up from my previous computer graphics course.",
   coverImage:
     a2Thumb,
   media: [
@@ -181,7 +202,7 @@ const A2 = {
 };
 
 export default function App() {
-  const projects = [A2, A3, A4, A5, A6, FINAL, WATER, DEEP_BLUE];
+  const projects = [A2, A3, A4, A5, A6, FINAL, WATER, DEEP_BLUE, SHINGLES];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
@@ -305,9 +326,8 @@ export default function App() {
                           <img
                             key={idx}
                             src={item.url}
-                            alt={`${project.title} additional screenshot ${
-                              idx + 1
-                            }`}
+                            alt={`${project.title} additional screenshot ${idx + 1
+                              }`}
                             className="w-full object-cover max-h-[400px]"
                           />
                         ))}
@@ -351,28 +371,28 @@ export default function App() {
                           </a>
                         </Button>
                         {project.videoUrl && (
-                            <Button variant="outline" className="gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700" asChild>
-                              <a
-                                  href={project.videoUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                              >
-                                <Youtube className="w-4 h-4" />
-                                Watch Video Demo
-                              </a>
-                            </Button>
+                          <Button variant="outline" className="gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700" asChild>
+                            <a
+                              href={project.videoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Youtube className="w-4 h-4" />
+                              Watch Video Demo
+                            </a>
+                          </Button>
                         )}
                         {project.demoUrl && (
-                            <Button className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white" asChild>
-                              <a
-                                  href={project.demoUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                              >
-                                <MonitorPlay className="w-4 h-4" />
-                                Open Live Demo
-                              </a>
-                            </Button>
+                          <Button className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white" asChild>
+                            <a
+                              href={project.demoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <MonitorPlay className="w-4 h-4" />
+                              Open Live Demo
+                            </a>
+                          </Button>
                         )}
                       </div>
                     </div>
