@@ -4,3 +4,7 @@
 .env
 node_modules/
 .DS_Store
+all_screenshots/*
+progression_screenshots/*
+wip_screenshots/*
+*.zip
