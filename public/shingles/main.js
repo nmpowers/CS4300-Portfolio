@@ -1,4 +1,4 @@
-import { default as seagulls } from '../gulls/gulls.js';
+import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
 const POEM = [
     { lines: ["smoke stacks,", "chimneys,", "and shingles", "on the roof."] },
@@ -10,27 +10,33 @@ const POEM = [
     { lines: ["in smoke stacks,", "chimneys,", "and shingles", "on the roof."] },
 ];
 
-const sg      = await seagulls.init(),
-      frag    = await seagulls.import( './frag.wgsl' ),
-      render  = seagulls.constants.vertex + frag,
-      w       = sg.width,
-      h       = sg.height;
+const w = window.innerWidth;
+const h = window.innerHeight;
+
+const renderer = new THREE.WebGLRenderer({ antialias: false });
+renderer.debug.checkShaderErrors = true;
+renderer.setSize(w, h);
+document.body.appendChild(renderer.domElement);
+
+const fragReq = await fetch('./frag.glsl');
+const frag = await fragReq.text();
+
+const vert = `
+    void main() {
+        gl_Position = vec4(position, 1.0);
+    }
+`;
 
 const oc = document.createElement('canvas');
 oc.width = w; oc.height = h;
-const octx = oc.getContext('2d');
+const octx = oc.getContext('2d', { willReadFrequently: true });
 
-const overlayTex = sg.device.createTexture({
-    size:  [ w, h ],
-    format:'rgba8unorm',
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-});
-overlayTex.type = 'texture';
-const samp = sg.sampler({ addressModeU:'clamp-to-edge', addressModeV:'clamp-to-edge' });
+const overlayTex = new THREE.CanvasTexture(oc);
+overlayTex.minFilter = THREE.LinearFilter;
+overlayTex.magFilter = THREE.LinearFilter;
 
 function uploadOverlay() {
-    const img = octx.getImageData( 0, 0, w, h );
-    sg.device.queue.writeTexture( { texture: overlayTex }, img.data, { bytesPerRow: w * 4, rowsPerImage: h }, { width: w, height: h } );
+    overlayTex.needsUpdate = true;
 }
 
 function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
@@ -45,8 +51,10 @@ let game = {
     subtitleBox: null,
 };
 
-const LINE_HOLD = 3.5;
-const LINE_FADE = 1.5;
+const LINE_HOLD = 2.5;
+const LINE_FADE = 1.0;
+const STANZA_PAUSE = 1.8; // Extra breath between stanzas
+const FINAL_STANZA_MULT = 1.6; // Final stanza plays slower for cyclical emphasis
 
 function drawSubtitle( text, alpha, cx, cy ) {
     if( !text ) {
@@ -82,12 +90,9 @@ function redrawOverlay(alpha, timeOfDay) {
 
     if (game.ended) {
         const ea = now() - game.endTime;
-        const creditAlpha = clamp((ea - 4.0) / 3.0, 0, 1);
-        if (creditAlpha > 0) {
-            octx.fillStyle = `rgba(255, 255, 255, ${creditAlpha})`;
-            octx.font = `20px "Brush Script MT", "Lucida Handwriting", cursive`;
-            octx.textAlign = 'center';
-            octx.fillText("By Nathaniel Powers", w / 2, h / 2);
+        if (ea > 4.0) {
+            const creditsEl = document.getElementById('credits');
+            if (creditsEl) creditsEl.classList.add('visible');
         }
     }
 
@@ -99,23 +104,32 @@ function tick() {
     const stanza = POEM[game.stanzaIdx];
     const lineAge = t - game.lineStart;
 
+    // Final stanza repeats the first — play it slower
+    const isFinalStanza = game.stanzaIdx === POEM.length - 1;
+    const holdTime = isFinalStanza ? LINE_HOLD * FINAL_STANZA_MULT : LINE_HOLD;
+    const fadeTime = isFinalStanza ? LINE_FADE * FINAL_STANZA_MULT : LINE_FADE;
+
     let alpha = 0.0;
-    if (lineAge < LINE_FADE) {
-        alpha = lineAge / LINE_FADE;
-    } else if (lineAge < LINE_FADE + LINE_HOLD) {
+    if (lineAge < fadeTime) {
+        alpha = lineAge / fadeTime;
+    } else if (lineAge < fadeTime + holdTime) {
         alpha = 1.0;
     } else {
-        alpha = Math.max( 0, 1 - (lineAge - LINE_FADE - LINE_HOLD) / LINE_FADE );
+        alpha = Math.max( 0, 1 - (lineAge - fadeTime - holdTime) / fadeTime );
     }
 
-    if (lineAge > LINE_HOLD + LINE_FADE * 2) {
+    const lineDuration = holdTime + fadeTime * 2;
+    if (lineAge > lineDuration) {
         if (game.lineIdx < stanza.lines.length - 1) {
             game.lineIdx++;
             game.lineStart = t;
         } else if (game.stanzaIdx < POEM.length - 1) {
-            game.stanzaIdx++;
-            game.lineIdx = 0;
-            game.lineStart = t;
+            // Stanza pause — extra silence between stanzas
+            if (lineAge > lineDuration + STANZA_PAUSE) {
+                game.stanzaIdx++;
+                game.lineIdx = 0;
+                game.lineStart = t;
+            }
         } else if (!game.ended) {
             game.ended = true;
             game.endTime = t;
@@ -129,7 +143,14 @@ function tick() {
     linesPassed += game.lineIdx;
     
     // Add fractional progress of current line
-    let lineProgress = clamp(lineAge / (LINE_HOLD + LINE_FADE * 2), 0, 1);
+    let currentLineAge = t - game.lineStart;
+    const isFinal = game.stanzaIdx === POEM.length - 1;
+    const curHold = isFinal ? LINE_HOLD * FINAL_STANZA_MULT : LINE_HOLD;
+    const curFade = isFinal ? LINE_FADE * FINAL_STANZA_MULT : LINE_FADE;
+    // Include stanza pause in the total duration so timeOfDay advances continuously
+    const isLastLineOfStanza = game.lineIdx === stanza.lines.length - 1;
+    const pauseTime = (isLastLineOfStanza && game.stanzaIdx < POEM.length - 1) ? STANZA_PAUSE : 0;
+    let lineProgress = clamp(currentLineAge / (curHold + curFade * 2 + pauseTime), 0, 1);
     
     let timeOfDay = (linesPassed + lineProgress) / totalLines;
     if (game.ended) {
@@ -142,29 +163,44 @@ function tick() {
     redrawOverlay(alpha, timeOfDay);
 }
 
-const res = sg.uniform([ w, h ]);
-const u_view = sg.uniform([ 3.0, 0.0, 0.0, 0.0 ]); // pixel size, timeOfDay, reserved, time
-const u_subtitle = sg.uniform([ 0.0, 0.0, 0.0, 0.0 ]);
+const uniforms = {
+    res: { value: new THREE.Vector2(w, h) },
+    u_view: { value: new THREE.Vector4(3.0, 0.0, 0.0, 0.0) }, // [pixelSize, timeOfDay, subtitleAlpha, time]
+    overlayTex: { value: overlayTex },
+};
 
 redrawOverlay(0, 0);
 const startTime = now();
 
-const renderPass = await sg.render({
-    shader: render,
-    data: [ res, u_view, samp, overlayTex, u_subtitle ],
-    onframe: () => {
-        tick();
-        const t = now() - startTime;
-        
-        // Pass timeOfDay and subtitleAlpha
-        u_view.value = [ 3.0, game.timeOfDay, game.subtitleAlpha, t ];
+const scene = new THREE.Scene();
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+const geometry = new THREE.PlaneGeometry(2, 2);
+const material = new THREE.ShaderMaterial({
+    vertexShader: vert,
+    fragmentShader: frag,
+    uniforms: uniforms,
+});
+const mesh = new THREE.Mesh(geometry, material);
+scene.add(mesh);
 
-        if (game.subtitleBox) {
-            u_subtitle.value = game.subtitleBox;
-        } else {
-            u_subtitle.value = [0.0, 0.0, 0.0, 0.0];
-        }
-    }
+window.addEventListener('resize', () => {
+    const newW = window.innerWidth;
+    const newH = window.innerHeight;
+    renderer.setSize(newW, newH);
+    uniforms.res.value.set(newW, newH);
+    oc.width = newW;
+    oc.height = newH;
+    redrawOverlay(game.subtitleAlpha, game.timeOfDay);
 });
 
-sg.run(renderPass);
+function animate() {
+    requestAnimationFrame(animate);
+    
+    tick();
+    const t = now() - startTime;
+    
+    uniforms.u_view.value.set(3.0, game.timeOfDay, game.subtitleAlpha, t);
+    
+    renderer.render(scene, camera);
+}
+animate();

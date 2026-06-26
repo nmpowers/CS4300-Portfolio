@@ -7,7 +7,7 @@ import fs from 'fs';
     const page = await browser.newPage();
     
     console.log("Navigating...");
-    await page.goto('http://localhost:5173/shingles/index.html', { waitUntil: 'networkidle2', timeout: 5000 });
+    await page.goto('http://localhost:5173/shingles/index.html', { waitUntil: 'load', timeout: 5000 });
     
     await new Promise(r => setTimeout(r, 2000));
     

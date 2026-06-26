@@ -3,13 +3,20 @@
 
 <head>
     <meta charset='utf-8'>
-    <title>Shingles On The Roof</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shingles On The Roof — An Interactive Poem</title>
+    <meta name="description" content="An artistic meditation on the mundane beauty of repetitive infrastructure, rendered as an interactive poem set in 1800s Paris.">
+    <meta property="og:title" content="Shingles On The Roof">
+    <meta property="og:description" content="Smoke stacks, chimneys, and shingles on the roof. An interactive WebGL poem about finding beauty in repetition.">
+    <meta property="og:type" content="website">
     <script src='/shingles/main.js' type='module'></script>
     <link href='../gulls/howtos/shared.css' rel='stylesheet'>
     <link rel='shortcut icon' href='data:image/x-icon;,' type='image/x-icon'>
     <style>
         body {
             background: black;
+            overflow: hidden;
+            cursor: none;
         }
 
         #credits {
@@ -18,20 +25,25 @@
             left: 0;
             width: 100%;
             text-align: center;
-            color: rgba(255, 255, 255, 0.4);
+            color: rgba(255, 255, 255, 0.0);
             font-family: Georgia, 'Times New Roman', serif;
             font-size: 0.85rem;
             letter-spacing: 0.18em;
             text-transform: uppercase;
             pointer-events: none;
-            transition: opacity 1.6s ease;
+            transition: opacity 4s ease;
             z-index: 1;
+        }
+        
+        #credits.visible {
+            color: rgba(255, 255, 255, 0.4);
         }
     </style>
 </head>
 
 <body>
     <canvas></canvas>
+    <div id="credits">A poem by Nathaniel Powers</div>
 </body>
 
 </html>

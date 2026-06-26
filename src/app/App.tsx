@@ -28,13 +28,14 @@ import a6Thumb from "../assets/A6-thumbnail.png";
 import FINALThumb from "../assets/FINAL-Thumbnail.png"
 import waterThumb from "../assets/water-Thumbnail.png";
 import deepBlueThumb from "../assets/Deep-Blue-thumbnail.png";
+import shinglesThumb from "../assets/shingles-thumbnail.png";
 
 const SHINGLES = {
   id: "shingles",
   title: "Shingles On The Roof",
-  summary: "A 1800s Parisian roofscape shader that traces the progression of a single day, paired with a poem about the mundane foundations of our lives.",
-  description: "A procedural raymarching shader exploring the toils and hard work we put into everything we create. Seen from slightly above the rooftops of 1800s Paris, the city stretches out towards an Eiffel Tower silhouette on the horizon.\n\n" +
-    "The environment goes through a full day cycle: sunrise, midday, dusk, and late night. The passage of time is linked directly to the lines of the poem 'Shingles On The Roof', such that when the final verse plays, the city is plunged into darkness and the window lights slowly begin to turn off one by one.\n\n" +
+  summary: "A Parisian roofscape shader that traces the progression of a single day, paired with a poem about the mundane foundations of our lives.",
+  description: "A procedural raymarching shader exploring the toils and hard work we put into everything we create. Seen from slightly above the rooftops of 1800s Paris, the city stretches out towards an Eiffel Tower silhouette on the horizon. " +
+    "The environment goes through a full day cycle: sunrise, midday, dusk, and late night.\n\n" +
     "\"Shingles On The Roof\" By Nathaniel Powers\n\n" +
     "smoke stacks,\nchimneys,\nand shingles\non the roof.\n\n" +
     "I’m always looking,\ntoward the top,\nat things I need to prove.\n\n" +
@@ -43,7 +44,7 @@ const SHINGLES = {
     "and my life will sit\nin idle state,\nas bricks are laid;\nall one in the same.\n\n" +
     "so one day,\ni’ll have been built,\nand all my work\nwill lay distilled\n\n" +
     "in smoke stacks,\nchimneys,\nand shingles\non the roof.",
-  coverImage: deepBlueThumb,
+  coverImage: shinglesThumb,
   media: [],
   tech: ["Art", "WGSL", "gulls.js", "Raymarching"],
   repoUrl: "https://github.com/nmpowers/CS4300-Portfolio/tree/main/public/shingles",
