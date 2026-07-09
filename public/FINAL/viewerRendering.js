@@ -248,6 +248,12 @@ function parsePLYHeader(headerText) {
  *          An async promise of the detected model kind ("mesh", "splat", or "points") and the
  *          data object ready to hand to buildMeshObject (for "mesh") or buildSplatObject (otherwise).
  */
+// Clamps a color channel value into [0, max]; every color-conversion path below needs this
+// (uchar mesh/point colors clamp to 255, float splat colors clamp to 1).
+function clampChannel(value, max) {
+    return Math.max(0, Math.min(max, value));
+}
+
 async function parsePLY(url) {
     console.log("Fetching PLY data from: " + url);
     const response = await fetch(url);
@@ -270,10 +276,11 @@ async function parsePLY(url) {
         return null;
     }
 
+    // only strip the single line terminator right after "end_header" (either "\n" or "\r\n") --
+    // looping here would risk eating into binary payload bytes that happen to equal \r or \n
     let headerEnd = markerIdx + 'end_header'.length;
-    while (headerEnd < headerText.length && (headerText[headerEnd] === '\r' || headerText[headerEnd] === '\n')) {
-        headerEnd++;
-    }
+    if (headerText[headerEnd] === '\r') headerEnd++;
+    if (headerText[headerEnd] === '\n') headerEnd++;
 
     const { format, elements } = parsePLYHeader(headerText.slice(0, markerIdx));
     const littleEndian = format !== 'binary_big_endian';
@@ -286,28 +293,97 @@ async function parsePLY(url) {
         return null;
     }
 
+    const xIdx = vertexElement.properties.findIndex(p => p.name === 'x');
+    const yIdx = vertexElement.properties.findIndex(p => p.name === 'y');
+    const zIdx = vertexElement.properties.findIndex(p => p.name === 'z');
+    if (xIdx === -1 || yIdx === -1 || zIdx === -1) {
+        console.error("PLY vertex element is missing x/y/z position properties.");
+        return null;
+    }
+
     console.log("Successfully parsed header. Loading PLY data...");
 
+    // classify the file from header metadata alone (property names), before touching any
+    // per-vertex data, so the body parser below only has to store the properties this
+    // classification actually needs -- large splat/point-cloud PLYs commonly declare dozens
+    // of properties (full spherical harmonics, curvature, etc.) that would otherwise be
+    // needlessly parsed and held in memory for every single vertex
+    const propNames = new Set(vertexElement.properties.map(p => p.name));
+    const hasFaces = !!faceElement && faceElement.count > 0;
+    const isSplat = propNames.has('f_dc_0') && propNames.has('f_dc_1') && propNames.has('f_dc_2') &&
+        propNames.has('opacity') && propNames.has('scale_0') && propNames.has('rot_0');
+    const hasColorChannels = propNames.has('red') && propNames.has('green') && propNames.has('blue');
+    const hasAlphaChannel = propNames.has('alpha');
+    const colorProp = hasColorChannels ? vertexElement.properties.find(p => p.name === 'red') : null;
+    // PLY colors are almost always stored as 0-255 uchar values; only scale down if they were
+    // actually declared as a float type (0.0-1.0 range)
+    const isFloatColor = colorProp && (colorProp.type === 'float' || colorProp.type === 'float32' || colorProp.type === 'double');
+
+    const neededPropNames = new Set();
+    if (isSplat) { neededPropNames.add('f_dc_0'); neededPropNames.add('f_dc_1'); neededPropNames.add('f_dc_2'); }
+    if (hasColorChannels) {
+        neededPropNames.add('red'); neededPropNames.add('green'); neededPropNames.add('blue');
+        if (hasAlphaChannel) neededPropNames.add('alpha');
+    }
+    // x/y/z are handled separately straight into the positions array below, so they're excluded here
+    const otherNeededProps = vertexElement.properties
+        .map((p, propIdx) => ({ name: p.name, type: p.type, propIdx }))
+        .filter(p => neededPropNames.has(p.name));
+
+    const count = vertexElement.count;
+    const positions = new Float32Array(count * 3);
     const vertexProps = {};
-    vertexElement.properties.forEach(p => { vertexProps[p.name] = new Float32Array(vertexElement.count); });
+    otherNeededProps.forEach(p => { vertexProps[p.name] = new Float32Array(count); });
     const faceIndices = [];
+
+    // if a face element has more than one list property, prefer the one conventionally used
+    // for vertex indices by name, falling back to the first list found for unusual exporters
+    const faceListProps = faceElement ? faceElement.properties.filter(p => p.isList) : [];
+    const indexListProp = faceListProps.find(p => p.name === 'vertex_indices' || p.name === 'vertex_index') || faceListProps[0];
 
     if (format === 'ascii') {
         const bodyText = textDecoder.decode(bytes.subarray(headerEnd));
         const lines = bodyText.split('\n');
         let lineIdx = 0;
 
-        for (let i = 0; i < vertexElement.count; i++) {
+        for (let i = 0; i < count; i++) {
+            if (lineIdx >= lines.length) {
+                console.error("PLY file ended unexpectedly while reading vertex data.");
+                return null;
+            }
             const tokens = lines[lineIdx++].trim().split(/\s+/).map(Number);
-            vertexElement.properties.forEach((p, propIdx) => { vertexProps[p.name][i] = tokens[propIdx]; });
+            positions[i * 3 + 0] = tokens[xIdx];
+            positions[i * 3 + 1] = tokens[yIdx];
+            positions[i * 3 + 2] = tokens[zIdx];
+            for (const p of otherNeededProps) {
+                vertexProps[p.name][i] = tokens[p.propIdx];
+            }
         }
 
         if (faceElement) {
             for (let i = 0; i < faceElement.count; i++) {
+                if (lineIdx >= lines.length) {
+                    console.error("PLY file ended unexpectedly while reading face data.");
+                    return null;
+                }
                 const tokens = lines[lineIdx++].trim().split(/\s+/).map(Number);
-                const n = tokens[0];
-                for (let v = 1; v < n - 1; v++) {
-                    faceIndices.push(tokens[1], tokens[1 + v], tokens[2 + v]);
+                let tokenPos = 0;
+                let idx = null;
+                for (const prop of faceElement.properties) {
+                    if (prop.isList) {
+                        const n = tokens[tokenPos++];
+                        const values = tokens.slice(tokenPos, tokenPos + n);
+                        tokenPos += n;
+                        if (prop === indexListProp) idx = values;
+                    } else {
+                        tokenPos++; // skip an unused per-face scalar (e.g. per-face color)
+                    }
+                }
+                // fan-triangulate in case of quads/n-gons so it can be drawn with gl.TRIANGLES
+                if (idx) {
+                    for (let v = 1; v < idx.length - 1; v++) {
+                        faceIndices.push(idx[0], idx[v], idx[v + 1]);
+                    }
                 }
             }
         }
@@ -321,54 +397,52 @@ async function parsePLY(url) {
         let running = 0;
         vertexElement.properties.forEach(p => { propOffsets[p.name] = running; running += PLY_TYPE_SIZES[p.type]; });
 
-        for (let i = 0; i < vertexElement.count; i++) {
+        const xType = vertexElement.properties[xIdx].type;
+        const yType = vertexElement.properties[yIdx].type;
+        const zType = vertexElement.properties[zIdx].type;
+        const xOffset = propOffsets.x, yOffset = propOffsets.y, zOffset = propOffsets.z;
+
+        for (let i = 0; i < count; i++) {
             const base = cursor + i * stride;
-            vertexElement.properties.forEach(p => {
+            positions[i * 3 + 0] = readPLYScalar(dataView, base + xOffset, xType, littleEndian);
+            positions[i * 3 + 1] = readPLYScalar(dataView, base + yOffset, yType, littleEndian);
+            positions[i * 3 + 2] = readPLYScalar(dataView, base + zOffset, zType, littleEndian);
+            for (const p of otherNeededProps) {
                 vertexProps[p.name][i] = readPLYScalar(dataView, base + propOffsets[p.name], p.type, littleEndian);
-            });
+            }
         }
-        cursor += vertexElement.count * stride;
+        cursor += count * stride;
 
         if (faceElement) {
-            // face rows have variable length (an N-gon vertex count followed by N indices),
-            // so they have to be walked one row at a time rather than by a fixed stride
-            const listProp = faceElement.properties.find(p => p.isList);
-            const countSize = PLY_TYPE_SIZES[listProp.listCountType];
-            const itemSize = PLY_TYPE_SIZES[listProp.listItemType];
-
+            // face rows have variable length (an N-gon vertex count followed by N indices, plus
+            // any other per-face properties), so they have to be walked one row at a time
             for (let i = 0; i < faceElement.count; i++) {
-                const n = readPLYScalar(dataView, cursor, listProp.listCountType, littleEndian);
-                cursor += countSize;
-                const idx = [];
-                for (let v = 0; v < n; v++) {
-                    idx.push(readPLYScalar(dataView, cursor, listProp.listItemType, littleEndian));
-                    cursor += itemSize;
+                let idx = null;
+                for (const prop of faceElement.properties) {
+                    if (prop.isList) {
+                        const countSize = PLY_TYPE_SIZES[prop.listCountType];
+                        const itemSize = PLY_TYPE_SIZES[prop.listItemType];
+                        const n = readPLYScalar(dataView, cursor, prop.listCountType, littleEndian);
+                        cursor += countSize;
+                        const values = [];
+                        for (let v = 0; v < n; v++) {
+                            values.push(readPLYScalar(dataView, cursor, prop.listItemType, littleEndian));
+                            cursor += itemSize;
+                        }
+                        if (prop === indexListProp) idx = values;
+                    } else {
+                        cursor += PLY_TYPE_SIZES[prop.type]; // skip an unused per-face scalar (e.g. per-face color)
+                    }
                 }
                 // fan-triangulate in case of quads/n-gons so it can be drawn with gl.TRIANGLES
-                for (let v = 1; v < n - 1; v++) {
-                    faceIndices.push(idx[0], idx[v], idx[v + 1]);
+                if (idx) {
+                    for (let v = 1; v < idx.length - 1; v++) {
+                        faceIndices.push(idx[0], idx[v], idx[v + 1]);
+                    }
                 }
             }
         }
     }
-
-    const propNames = new Set(vertexElement.properties.map(p => p.name));
-    const hasFaces = !!faceElement && faceElement.count > 0;
-    const isSplat = propNames.has('f_dc_0') && propNames.has('opacity') && propNames.has('scale_0') && propNames.has('rot_0');
-    const count = vertexElement.count;
-
-    const positions = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-        positions[i * 3 + 0] = vertexProps.x[i];
-        positions[i * 3 + 1] = vertexProps.y[i];
-        positions[i * 3 + 2] = vertexProps.z[i];
-    }
-
-    const hasColorChannels = propNames.has('red') && propNames.has('green') && propNames.has('blue');
-    const colorProp = hasColorChannels ? vertexElement.properties.find(p => p.name === 'red') : null;
-    // PLY colors are almost always stored as 0-255 uchar values; only scale down if they were
-    // actually declared as a float type (0.0-1.0 range)
-    const isFloatColor = colorProp && (colorProp.type === 'float' || colorProp.type === 'float32' || colorProp.type === 'double');
 
     if (hasFaces) {
         console.log("Detected mesh PLY (" + count + " vertices, " + faceElement.count + " faces).");
@@ -378,10 +452,10 @@ async function parsePLY(url) {
             colors = new Uint8Array(count * 4);
             const scale = isFloatColor ? 255 : 1;
             for (let i = 0; i < count; i++) {
-                colors[i * 4 + 0] = Math.max(0, Math.min(255, Math.round(vertexProps.red[i] * scale)));
-                colors[i * 4 + 1] = Math.max(0, Math.min(255, Math.round(vertexProps.green[i] * scale)));
-                colors[i * 4 + 2] = Math.max(0, Math.min(255, Math.round(vertexProps.blue[i] * scale)));
-                colors[i * 4 + 3] = propNames.has('alpha') ? Math.round(vertexProps.alpha[i] * scale) : 255;
+                colors[i * 4 + 0] = Math.round(clampChannel(vertexProps.red[i] * scale, 255));
+                colors[i * 4 + 1] = Math.round(clampChannel(vertexProps.green[i] * scale, 255));
+                colors[i * 4 + 2] = Math.round(clampChannel(vertexProps.blue[i] * scale, 255));
+                colors[i * 4 + 3] = hasAlphaChannel ? Math.round(clampChannel(vertexProps.alpha[i] * scale, 255)) : 255;
             }
         }
 
@@ -403,9 +477,9 @@ async function parsePLY(url) {
         // converting spherical harmonics DC term (used for Gaussian Splats) into RGB values
         const SH_C0 = 0.28209479177387814;
         for (let i = 0; i < count; i++) {
-            colors[i * 4 + 0] = Math.max(0, Math.min(1, 0.5 + SH_C0 * vertexProps.f_dc_0[i]));
-            colors[i * 4 + 1] = Math.max(0, Math.min(1, 0.5 + SH_C0 * vertexProps.f_dc_1[i]));
-            colors[i * 4 + 2] = Math.max(0, Math.min(1, 0.5 + SH_C0 * vertexProps.f_dc_2[i]));
+            colors[i * 4 + 0] = clampChannel(0.5 + SH_C0 * vertexProps.f_dc_0[i], 1);
+            colors[i * 4 + 1] = clampChannel(0.5 + SH_C0 * vertexProps.f_dc_1[i], 1);
+            colors[i * 4 + 2] = clampChannel(0.5 + SH_C0 * vertexProps.f_dc_2[i], 1);
             colors[i * 4 + 3] = 1.0;
         }
     } else {
@@ -437,6 +511,26 @@ async function parsePLY(url) {
 function syncToggleButton(buttonId, isOn) {
     const btn = document.getElementById(buttonId);
     if (btn) btn.classList.toggle("active", isOn);
+}
+
+// Describes each keyboard/button-driven feature toggle: which button it drives, and how to
+// read/write the underlying state variable (plain booleans can't be passed by reference, so a
+// getter/setter pair stands in for one). Shared by the keydown handler, the button click
+// handlers, and the initial state sync so flip+sync bookkeeping only lives in one place.
+const glassToggleDef = { buttonId: "glassToggleBtn", get: () => glassToggle, set: v => { glassToggle = v; } };
+const lightToggleDef = { buttonId: "lightToggleBtn", get: () => lightToggle, set: v => { lightToggle = v; } };
+const shadowToggleDef = { buttonId: "shadowToggleBtn", get: () => shadowToggle, set: v => { shadowToggle = v; } };
+const diffuseToggleDef = { buttonId: "diffuseToggleBtn", get: () => diffuseToggle, set: v => { diffuseToggle = v; } };
+const specularToggleDef = { buttonId: "specularToggleBtn", get: () => specularToggle, set: v => { specularToggle = v; } };
+const allToggleDefs = [glassToggleDef, lightToggleDef, shadowToggleDef, diffuseToggleDef, specularToggleDef];
+
+/**
+ * Flips a feature toggle's underlying state and reflects the new value onto its button.
+ * @param toggle One of the toggle descriptors above.
+ */
+function flipToggle(toggle) {
+    toggle.set(!toggle.get());
+    syncToggleButton(toggle.buttonId, toggle.get());
 }
 
 /**
@@ -843,7 +937,14 @@ window.onload = async function init() {
         const statusEl = document.getElementById("plyStatus");
         if (statusEl) statusEl.textContent = "Parsing " + file.name + "...";
 
-        const parsed = await parsePLY(filePath);
+        let parsed;
+        try {
+            parsed = await parsePLY(filePath);
+        } catch (err) {
+            console.error("Failed to parse PLY file:", err);
+            if (statusEl) statusEl.textContent = "Failed to parse " + file.name + ": " + err.message;
+            return;
+        }
         if (!parsed) {
             if (statusEl) statusEl.textContent = "Failed to parse " + file.name + ". Check console for details.";
             return;
@@ -868,9 +969,13 @@ window.onload = async function init() {
             return;
         }
         const filePath = URL.createObjectURL(file); // make url to pass to parser
+        const statusEl = document.getElementById("plyStatus");
         const meshData = await loadGLB(filePath);
         if (meshData){
             buildMeshObject(meshData);
+            meshToggle = true; // switch to mesh view since that's what was just uploaded, matching the .ply upload behavior
+            updateViewToggleLabel();
+            if (statusEl) statusEl.textContent = "Loaded mesh: " + file.name + ".";
         }
 
     })
@@ -912,8 +1017,7 @@ window.onload = async function init() {
                 camY += flySpeed;
                 break;
             case "g": case "G": // turn glass on/off
-                glassToggle = !glassToggle;
-                syncToggleButton("glassToggleBtn", glassToggle);
+                flipToggle(glassToggleDef);
                 break;
             case "ArrowUp": // move model forward
                 event.preventDefault();
@@ -932,20 +1036,16 @@ window.onload = async function init() {
                 modelTranslationX += flySpeed;
                 break;
             case "l": case "L": // turn spotlight on/off
-                lightToggle = !lightToggle;
-                syncToggleButton("lightToggleBtn", lightToggle);
+                flipToggle(lightToggleDef);
                 break;
             case "k": case "K": // turn shadows on/off
-                shadowToggle = !shadowToggle;
-                syncToggleButton("shadowToggleBtn", shadowToggle);
+                flipToggle(shadowToggleDef);
                 break;
             case "1":
-                diffuseToggle = !diffuseToggle;
-                syncToggleButton("diffuseToggleBtn", diffuseToggle);
+                flipToggle(diffuseToggleDef);
                 break;
             case "2":
-                specularToggle = !specularToggle;
-                syncToggleButton("specularToggleBtn", specularToggle);
+                flipToggle(specularToggleDef);
                 break;
         }
     })
@@ -989,37 +1089,14 @@ window.onload = async function init() {
         updateViewToggleLabel();
     })
 
-    document.getElementById("glassToggleBtn").addEventListener("click", function(e){
-        glassToggle = !glassToggle;
-        syncToggleButton("glassToggleBtn", glassToggle);
-    })
-
-    document.getElementById("lightToggleBtn").addEventListener("click", function(e){
-        lightToggle = !lightToggle;
-        syncToggleButton("lightToggleBtn", lightToggle);
-    })
-
-    document.getElementById("shadowToggleBtn").addEventListener("click", function(e){
-        shadowToggle = !shadowToggle;
-        syncToggleButton("shadowToggleBtn", shadowToggle);
-    })
-
-    document.getElementById("diffuseToggleBtn").addEventListener("click", function(e){
-        diffuseToggle = !diffuseToggle;
-        syncToggleButton("diffuseToggleBtn", diffuseToggle);
-    })
-
-    document.getElementById("specularToggleBtn").addEventListener("click", function(e){
-        specularToggle = !specularToggle;
-        syncToggleButton("specularToggleBtn", specularToggle);
-    })
+    allToggleDefs.forEach(toggle => {
+        document.getElementById(toggle.buttonId).addEventListener("click", function(e){
+            flipToggle(toggle);
+        });
+    });
 
     // reflect the initial default states of all toggles onto their buttons
-    syncToggleButton("glassToggleBtn", glassToggle);
-    syncToggleButton("lightToggleBtn", lightToggle);
-    syncToggleButton("shadowToggleBtn", shadowToggle);
-    syncToggleButton("diffuseToggleBtn", diffuseToggle);
-    syncToggleButton("specularToggleBtn", specularToggle);
+    allToggleDefs.forEach(toggle => syncToggleButton(toggle.buttonId, toggle.get()));
     updateViewToggleLabel();
 
     // UI sliders
