@@ -1,5 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>3D Splat &amp; Mesh Viewer</title>
+<link rel="stylesheet" href="styles.css">
 <script src="https://unpkg.com/@loaders.gl/core@3.4.4/dist/dist.min.js"></script>
 <script src="https://unpkg.com/@loaders.gl/gltf@3.4.4/dist/dist.min.js"></script>
 <script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
@@ -318,57 +322,94 @@ void main() {
     }
 }
 </script>
+</head>
+<body>
+<div class="app">
+    <header class="app-header">
+        <h1>3D Splat &amp; Mesh Viewer</h1>
+        <p class="subtitle">Gaussian Splats, point clouds, and meshes from Meta SAM 3D &mdash; supports Gaussian Splat, plain point cloud, and regular mesh <code>.ply</code> files, plus <code>.glb</code> meshes</p>
+    </header>
+
+    <div class="app-body">
+        <aside class="sidebar">
+            <section class="panel">
+                <h2>Upload Model</h2>
+                <div class="upload-row">
+                    <label for="plyUpload">Point Cloud / Splat / Mesh <span class="ext">.ply</span></label>
+                    <input type="file" id="plyUpload" accept=".ply">
+                </div>
+                <div class="upload-row">
+                    <label for="meshUpload">Matching Mesh <span class="ext">.glb</span></label>
+                    <input type="file" id="meshUpload" accept=".glb">
+                </div>
+                <div class="upload-row">
+                    <label for="hatUpload">Hierarchy Hat <span class="ext">.glb</span></label>
+                    <input type="file" id="hatUpload" accept=".glb">
+                </div>
+                <p class="hint">Sample models are in this project's <code>/testModels</code> directory. The <code>.ply</code> slot auto-detects Gaussian Splats, point clouds, and regular meshes.</p>
+                <p id="plyStatus" class="status-text">No model loaded yet.</p>
+            </section>
+
+            <section class="panel">
+                <h2>View</h2>
+                <button id="viewToggleBtn" class="btn btn-primary">Switch to Mesh View</button>
+                <button id="hatToggle" class="btn">Add Stackable Hat</button>
+            </section>
+
+            <section class="panel">
+                <h2>Mesh Lighting</h2>
+                <div class="toggle-grid">
+                    <button id="lightToggleBtn" class="btn btn-toggle">Spotlight <kbd>L</kbd></button>
+                    <button id="shadowToggleBtn" class="btn btn-toggle">Shadows <kbd>K</kbd></button>
+                    <button id="diffuseToggleBtn" class="btn btn-toggle">Diffuse <kbd>1</kbd></button>
+                    <button id="specularToggleBtn" class="btn btn-toggle">Specular <kbd>2</kbd></button>
+                    <button id="glassToggleBtn" class="btn btn-toggle">Glass <kbd>G</kbd></button>
+                </div>
+                <div class="slider-row">
+                    <label>Spotlight Size <span class="value" id="spotSize">5</span>&deg;</label>
+                    <input type="range" id="spotSlider" min="1" max="45" step="1" value="5">
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>Splat Relighting</h2>
+                <div class="slider-row">
+                    <label>Bilateral Blur Width <span class="value" id="blurWidth">5.0</span></label>
+                    <input type="range" id="blurSlider" min="0.1" max="15.0" step="0.1" value="5.0">
+                </div>
+                <div class="slider-row">
+                    <label>Bilateral Sharpness <span class="value" id="blurSharpness">1.0</span></label>
+                    <input type="range" id="sharpnessSlider" min="0.1" max="2.0" step="0.01" value="1.0">
+                </div>
+                <div class="slider-row">
+                    <label>Ambient Brightness <span class="value" id="splatBrightness">0.3</span></label>
+                    <input type="range" id="splatBrightSlider" min="0.1" max="15.0" step="0.1" value="0.3">
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>Controls</h2>
+                <ul class="controls-list">
+                    <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Move camera</li>
+                    <li><kbd>Q</kbd><kbd>E</kbd> Camera down / up</li>
+                    <li><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&larr;</kbd><kbd>&rarr;</kbd> Move model</li>
+                    <li>Drag mouse to rotate model</li>
+                    <li>Shift + drag to roll (Z rotation)</li>
+                </ul>
+            </section>
+        </aside>
+
+        <main class="viewer">
+            <canvas id="gl-canvas" width="512" height="512">
+                Your browser doesn't support the canvas element.
+            </canvas>
+        </main>
+    </div>
+</div>
 
 <script type="text/javascript" src="lib/webgl-utils.js"></script>
 <script type="text/javascript" src="lib/initShaders.js"></script>
-
 <script type="text/javascript" src="lib/MV.js"></script>
 <script type="text/javascript" src="viewerRendering.js"></script>
-
-    <body>
-        <button id="viewToggleBtn">Toggle Mesh Mode</button>
-        <button id="hatToggle">Add Stackable Hat</button>
-        <br><br>
-
-        <div style="margin-bottom: 10px;">
-            <label>Spotlight Size (Degrees): <span id="spotSize">5</span></label><br>
-            <input type="range" id="spotSlider" min="1" max="45" step="1" value="5" style="width: 250px;">
-        </div>
-
-        <div style="margin-bottom: 10px;">
-            <label>Splat Bilateral Filter Blur Width : <span id="blurWidth">5.0</span></label><br>
-            <input type="range" id="blurSlider" min="0.1" max="15.0" step="0.1" value="5.0" style="width: 250px;">
-        </div>
-
-        <div style="margin-bottom: 10px;">
-            <label>Splat Bilateral Filter Sharpness (lower = sharper) : <span id="blurSharpness">1.0</span></label><br>
-            <input type="range" id="sharpnessSlider" min="0.1" max="2.0" step="0.01" value="1.0" style="width: 250px;">
-        </div>
-
-        <div style="margin-bottom: 10px;">
-            <label>Splat Relighting Brightness : <span id="splatBrightness">0.3</span></label><br>
-            <input type="range" id="splatBrightSlider" min="0.1" max="15.0" step="0.1" value="0.3" style="width: 250px;">
-        </div>
-        <br>
-
-        <div style="margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; display: inline-block;">
-            <b>Upload Models:</b><br><br>
-            Test Models can be found in this project's directory under /testModels <br><br>
-            The hat model can be found in the /hat folder, but you can upload another object instead.
-            <br> <br>
-            <label>Splat Object (MUST BE GAUSSIAN .ply): </label>
-            <input type="file" id="splatUpload" accept=".ply"><br><br>
-            <label>According Mesh Object(MUST BE .glb): </label>
-            <input type="file" id="meshUpload" accept=".glb"><br><br>
-            <label>Hat object for Hierarchy (MUST BE .glb): </label>
-            <input type="file" id="hatUpload" accept=".glb">
-        </div>
-        <br><br>
-
-
-
-        <canvas id="gl-canvas" width="512" height="512">
-        Epic fail!
-        </canvas>
-    </body>
+</body>
 </html>
