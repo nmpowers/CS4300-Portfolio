@@ -873,35 +873,44 @@ function buildPointGrid(positions, count, cellSize) {
 }
 
 /**
- * Finds the squared distance from point i to its nearest OTHER point, expanding the searched
- * ring of grid cells outward until at least one neighbor is found (up to a safety cap). This
- * keeps density estimation robust even in sparse regions where the grid's cell size (chosen
- * from the whole cloud's average density) is too small to contain any other point nearby --
- * exactly the situation a true stray outlier point creates.
+ * Finds the squared distance from point i to its nearest OTHER point, expanding outward one
+ * grid-cell shell at a time (up to a safety cap) until it's provably found the true nearest
+ * neighbor -- not just the first one encountered.
+ *
+ * Stopping the instant any neighbor is found is NOT safe on its own: near a cell boundary, a
+ * point in the current search box can be farther away than a closer point sitting just beyond
+ * it in an unsearched cell (Chebyshev cell-ring distance and Euclidean point distance don't
+ * line up). So once a candidate is found, the search keeps expanding until the ring radius
+ * itself (ring * cellSize) reaches the best distance found so far -- at that point, ANY point
+ * in a still-unsearched cell is geometrically guaranteed to be at least that far away, so nothing
+ * closer can be hiding outside the searched region.
  */
 function nearestNeighborDistSq(positions, i, grid, cellSize) {
     const xi = positions[i * 3], yi = positions[i * 3 + 1], zi = positions[i * 3 + 2];
     const cx = Math.floor(xi / cellSize), cy = Math.floor(yi / cellSize), cz = Math.floor(zi / cellSize);
 
-    for (let ring = 1; ring <= DENOISE_MAX_SEARCH_RINGS; ring++) {
-        let nearest = Infinity;
+    let best = Infinity;
+    for (let ring = 0; ring <= DENOISE_MAX_SEARCH_RINGS; ring++) {
+        // only scan the newly-added shell of cells at exactly this ring's Chebyshev distance --
+        // smaller rings were already covered by earlier iterations
         for (let dx = -ring; dx <= ring; dx++) {
             for (let dy = -ring; dy <= ring; dy++) {
                 for (let dz = -ring; dz <= ring; dz++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz)) !== ring) continue;
                     const bucket = grid.get(gridCellKey(cx + dx, cy + dy, cz + dz));
                     if (!bucket) continue;
                     for (const j of bucket) {
                         if (j === i) continue;
                         const dxp = positions[j * 3] - xi, dyp = positions[j * 3 + 1] - yi, dzp = positions[j * 3 + 2] - zi;
                         const distSq = dxp * dxp + dyp * dyp + dzp * dzp;
-                        if (distSq < nearest) nearest = distSq;
+                        if (distSq < best) best = distSq;
                     }
                 }
             }
         }
-        if (nearest < Infinity) return nearest;
+        if (best < Infinity && best <= ring * ring * cellSize * cellSize) break; // provably the true nearest now
     }
-    return Infinity; // no other point found even at the widest search ring -- a maximally isolated outlier
+    return best; // Infinity if no other point found even at the widest search ring -- a maximally isolated outlier
 }
 
 /**
@@ -965,6 +974,11 @@ function denoisePointCloud(pointData) {
 
     const sortedDist = Float32Array.from(nearestDistSq, Math.sqrt).sort();
     const medianDist = sortedDist[Math.floor(sortedDist.length / 2)];
+    // a median of exactly 0 means at least half the points are exact coincident duplicates
+    // (common from mesh-to-point-cloud conversion or repeated sensor returns at a fixed spot)
+    // -- treating ANY nonzero spacing as "an outlier" in that case would wipe out almost every
+    // legitimate, non-duplicated point, so bail out rather than risk destroying the cloud
+    if (medianDist === 0) return pointData;
 
     const outlierDistSq = Math.pow(medianDist * DENOISE_OUTLIER_DISTANCE_FACTOR, 2);
     const smoothRadius = medianDist * DENOISE_SMOOTH_RADIUS_FACTOR;
@@ -972,20 +986,26 @@ function denoisePointCloud(pointData) {
     const smoothRings = Math.max(1, Math.ceil(smoothRadius / cellSize));
 
     const isOutlier = new Uint8Array(count);
+    let keptCount = 0;
     for (let i = 0; i < count; i++) {
-        if (nearestDistSq[i] > outlierDistSq) isOutlier[i] = 1;
+        if (nearestDistSq[i] > outlierDistSq) {
+            isOutlier[i] = 1;
+        } else {
+            keptCount++;
+        }
     }
 
-    const smoothedPositions = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-        const xi = positions[i * 3], yi = positions[i * 3 + 1], zi = positions[i * 3 + 2];
-        if (isOutlier[i]) {
-            smoothedPositions[i * 3 + 0] = xi;
-            smoothedPositions[i * 3 + 1] = yi;
-            smoothedPositions[i * 3 + 2] = zi;
-            continue;
-        }
+    // write straight into exact-size output buffers instead of a full-size scratch array
+    // followed by a separate compaction pass -- outliers are skipped entirely rather than
+    // having a (wasted) smoothed position computed for them and then discarded
+    const keptPositions = new Float32Array(keptCount * 3);
+    const keptColors = new Float32Array(keptCount * 4);
+    let writeIdx = 0;
 
+    for (let i = 0; i < count; i++) {
+        if (isOutlier[i]) continue;
+
+        const xi = positions[i * 3], yi = positions[i * 3 + 1], zi = positions[i * 3 + 2];
         const cx = Math.floor(xi / cellSize), cy = Math.floor(yi / cellSize), cz = Math.floor(zi / cellSize);
         let sumX = 0, sumY = 0, sumZ = 0, neighborCount = 0;
         for (let dx = -smoothRings; dx <= smoothRings; dx++) {
@@ -1008,31 +1028,22 @@ function denoisePointCloud(pointData) {
         if (neighborCount > 0) {
             // pull the point partway toward its local neighborhood average to smooth out noise
             // without fully flattening real geometric detail
-            smoothedPositions[i * 3 + 0] = xi + (sumX / neighborCount - xi) * DENOISE_SMOOTH_STRENGTH;
-            smoothedPositions[i * 3 + 1] = yi + (sumY / neighborCount - yi) * DENOISE_SMOOTH_STRENGTH;
-            smoothedPositions[i * 3 + 2] = zi + (sumZ / neighborCount - zi) * DENOISE_SMOOTH_STRENGTH;
+            keptPositions[writeIdx * 3 + 0] = xi + (sumX / neighborCount - xi) * DENOISE_SMOOTH_STRENGTH;
+            keptPositions[writeIdx * 3 + 1] = yi + (sumY / neighborCount - yi) * DENOISE_SMOOTH_STRENGTH;
+            keptPositions[writeIdx * 3 + 2] = zi + (sumZ / neighborCount - zi) * DENOISE_SMOOTH_STRENGTH;
         } else {
-            smoothedPositions[i * 3 + 0] = xi;
-            smoothedPositions[i * 3 + 1] = yi;
-            smoothedPositions[i * 3 + 2] = zi;
+            keptPositions[writeIdx * 3 + 0] = xi;
+            keptPositions[writeIdx * 3 + 1] = yi;
+            keptPositions[writeIdx * 3 + 2] = zi;
         }
+        keptColors[writeIdx * 4 + 0] = colors[i * 4 + 0];
+        keptColors[writeIdx * 4 + 1] = colors[i * 4 + 1];
+        keptColors[writeIdx * 4 + 2] = colors[i * 4 + 2];
+        keptColors[writeIdx * 4 + 3] = colors[i * 4 + 3];
+        writeIdx++;
     }
 
-    // drop the stray outlier points
-    const keptPositions = [];
-    const keptColors = [];
-    for (let i = 0; i < count; i++) {
-        if (!isOutlier[i]) {
-            keptPositions.push(smoothedPositions[i * 3], smoothedPositions[i * 3 + 1], smoothedPositions[i * 3 + 2]);
-            keptColors.push(colors[i * 4], colors[i * 4 + 1], colors[i * 4 + 2], colors[i * 4 + 3]);
-        }
-    }
-
-    return {
-        numInstances: keptPositions.length / 3,
-        positions: new Float32Array(keptPositions),
-        colors: new Float32Array(keptColors)
-    };
+    return { numInstances: keptCount, positions: keptPositions, colors: keptColors };
 }
 
 /**
@@ -1057,6 +1068,10 @@ function applyPointCloudDisplay(loadedLabel) {
     }
 
     const loadedPrefix = loadedLabel ? "Loaded " + loadedLabel + ". " : "";
+    // the point cloud persists (and can still be denoised) even while a paired mesh is being
+    // shown instead -- flag that here so the status text isn't misread as describing whatever
+    // is currently on screen
+    const viewNote = meshToggle ? " (Switch to Splat View to see it.)" : "";
     if (denoiseToggle) {
         const before = lastPointCloudData.numInstances;
         const denoised = denoisePointCloud(lastPointCloudData);
@@ -1064,12 +1079,12 @@ function applyPointCloudDisplay(loadedLabel) {
         const removed = before - denoised.numInstances;
         if (statusEl) {
             statusEl.textContent = loadedPrefix + "Denoised: removed " + removed +
-                " stray point" + (removed === 1 ? "" : "s") + ", smoothed " + denoised.numInstances + " remaining.";
+                " stray point" + (removed === 1 ? "" : "s") + ", smoothed " + denoised.numInstances + " remaining." + viewNote;
         }
     } else {
         buildSplatObject(lastPointCloudData);
         if (statusEl) {
-            statusEl.textContent = loadedPrefix + (loadedPrefix ? "" : "Showing original point cloud (denoising off).");
+            statusEl.textContent = loadedPrefix + (loadedPrefix ? "" : "Showing original point cloud (denoising off)." + viewNote);
         }
     }
 }
