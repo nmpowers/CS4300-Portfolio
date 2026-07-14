@@ -41,6 +41,7 @@ var posTexLoc;
 var bilatBlurWidth = 5.0;
 var bilatBlurSharpness = 1.0;
 var splatAmbientBrightness = 0.3;
+var splatPointSize = 0.006; // scale of each rendered point/splat quad, user-adjustable
 
 // Mesh vars
 var meshToggle = false; // keeping track of whether mesh mode has been toggled
@@ -1106,6 +1107,11 @@ window.onload = async function init() {
         spotCutoff = Math.cos(spotlightAngle * Math.PI / 180.0);
     };
 
+    document.getElementById("pointSizeSlider").oninput = function(e) {
+        splatPointSize = parseFloat(e.target.value);
+        document.getElementById("pointSizeValue").innerText = splatPointSize.toFixed(4);
+    };
+
     document.getElementById("blurSlider").oninput = function(e) {
         bilatBlurWidth = parseFloat(e.target.value);
         document.getElementById("blurWidth").innerText = bilatBlurWidth.toFixed(1);
@@ -1391,6 +1397,7 @@ function render() {
         projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
         gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
         gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
+        gl.uniform1f(gl.getUniformLocation(program, "pointSize"), splatPointSize);
 
         // draw shapes
         gl.bindVertexArray(vertexObject);
