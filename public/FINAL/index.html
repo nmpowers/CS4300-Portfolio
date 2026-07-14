@@ -373,6 +373,8 @@ void main() {
 
             <section class="panel">
                 <h2>Point Cloud &amp; Splat Rendering</h2>
+                <button id="denoiseToggleBtn" class="btn">Denoise Point Cloud <kbd>N</kbd></button>
+                <p class="hint">Removes stray outlier points and smooths sensor noise (e.g. off reflective metal), based on each cloud's own point density.</p>
                 <div class="slider-row">
                     <label>Point Size <span class="value" id="pointSizeValue">0.0060</span></label>
                     <input type="range" id="pointSizeSlider" min="0.001" max="0.03" step="0.0005" value="0.006">
