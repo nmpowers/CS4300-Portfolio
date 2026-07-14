@@ -831,6 +831,294 @@ function buildSplatObject(splatData){
     gl.bindVertexArray(null);
 }
 
+// The most recently loaded splat/point-cloud data, exactly as parsed (never denoised), kept
+// around so the denoise toggle can be applied or reverted without re-parsing the file.
+var lastPointCloudData = null;
+var denoiseToggle = false;
+
+// Tunables for the point-cloud denoise pass. These are kept as constants rather than exposed
+// as sliders because the neighborhood distances are auto-derived below from each cloud's own
+// point density, so they already adapt to any model's scale.
+const DENOISE_OUTLIER_DISTANCE_FACTOR = 3.0; // a point is a stray outlier if its OWN nearest neighbor is farther than (median nearest-neighbor distance) times this
+const DENOISE_SMOOTH_RADIUS_FACTOR = 2.5; // neighborhood radius used for smoothing, as a multiple of the median nearest-neighbor distance
+const DENOISE_SMOOTH_STRENGTH = 0.5; // how far each kept point is pulled toward its local neighborhood average (0 = off, 1 = fully averaged)
+const DENOISE_MAX_SEARCH_RINGS = 6; // safety cap on how far the grid search expands looking for a neighbor before giving up
+
+// packs a (cx, cy, cz) grid cell into a single plain-number Map key instead of a string --
+// with hundreds of thousands of points each probing ~27+ neighboring cells, string
+// concatenation and hashing for every lookup was the dominant cost of the whole denoise pass.
+// 17 bits per axis (+-65536 cells) is far more range than any point cloud needs even at very
+// fine grid resolutions, and 3*17=51 bits stays safely within Number.MAX_SAFE_INTEGER.
+const GRID_KEY_BITS = 17;
+const GRID_KEY_OFFSET = 1 << (GRID_KEY_BITS - 1); // 65536 -- keeps each packed axis within exactly GRID_KEY_BITS bits
+const GRID_KEY_SCALE_Y = Math.pow(2, GRID_KEY_BITS);
+const GRID_KEY_SCALE_X = Math.pow(2, GRID_KEY_BITS * 2);
+
+function gridCellKey(cx, cy, cz) {
+    return (cx + GRID_KEY_OFFSET) * GRID_KEY_SCALE_X + (cy + GRID_KEY_OFFSET) * GRID_KEY_SCALE_Y + (cz + GRID_KEY_OFFSET);
+}
+
+function buildPointGrid(positions, count, cellSize) {
+    const grid = new Map();
+    for (let i = 0; i < count; i++) {
+        const cx = Math.floor(positions[i * 3] / cellSize);
+        const cy = Math.floor(positions[i * 3 + 1] / cellSize);
+        const cz = Math.floor(positions[i * 3 + 2] / cellSize);
+        const key = gridCellKey(cx, cy, cz);
+        let bucket = grid.get(key);
+        if (!bucket) { bucket = []; grid.set(key, bucket); }
+        bucket.push(i);
+    }
+    return grid;
+}
+
+/**
+ * Finds the squared distance from point i to its nearest OTHER point, expanding outward one
+ * grid-cell shell at a time (up to a safety cap) until it's provably found the true nearest
+ * neighbor -- not just the first one encountered.
+ *
+ * Stopping the instant any neighbor is found is NOT safe on its own: near a cell boundary, a
+ * point in the current search box can be farther away than a closer point sitting just beyond
+ * it in an unsearched cell (Chebyshev cell-ring distance and Euclidean point distance don't
+ * line up). So once a candidate is found, the search keeps expanding until the ring radius
+ * itself (ring * cellSize) reaches the best distance found so far -- at that point, ANY point
+ * in a still-unsearched cell is geometrically guaranteed to be at least that far away, so nothing
+ * closer can be hiding outside the searched region.
+ */
+function nearestNeighborDistSq(positions, i, grid, cellSize) {
+    const xi = positions[i * 3], yi = positions[i * 3 + 1], zi = positions[i * 3 + 2];
+    const cx = Math.floor(xi / cellSize), cy = Math.floor(yi / cellSize), cz = Math.floor(zi / cellSize);
+
+    let best = Infinity;
+    for (let ring = 0; ring <= DENOISE_MAX_SEARCH_RINGS; ring++) {
+        // only scan the newly-added shell of cells at exactly this ring's Chebyshev distance --
+        // smaller rings were already covered by earlier iterations
+        for (let dx = -ring; dx <= ring; dx++) {
+            for (let dy = -ring; dy <= ring; dy++) {
+                for (let dz = -ring; dz <= ring; dz++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz)) !== ring) continue;
+                    const bucket = grid.get(gridCellKey(cx + dx, cy + dy, cz + dz));
+                    if (!bucket) continue;
+                    for (const j of bucket) {
+                        if (j === i) continue;
+                        const dxp = positions[j * 3] - xi, dyp = positions[j * 3 + 1] - yi, dzp = positions[j * 3 + 2] - zi;
+                        const distSq = dxp * dxp + dyp * dyp + dzp * dzp;
+                        if (distSq < best) best = distSq;
+                    }
+                }
+            }
+        }
+        if (best < Infinity && best <= ring * ring * cellSize * cellSize) break; // provably the true nearest now
+    }
+    return best; // Infinity if no other point found even at the widest search ring -- a maximally isolated outlier
+}
+
+/**
+ * Removes stray outlier points -- typical of depth-sensor noise off reflective surfaces like
+ * metal, which shows up as points isolated from the rest of the surface -- and smooths the
+ * remaining point cloud by pulling each point partway toward the average position of its
+ * nearby neighbors.
+ *
+ * Density is estimated from the MEDIAN nearest-neighbor distance across all points, not a
+ * single cloud-wide average: an average gets dragged around by the very outliers we're
+ * trying to detect (a few far-flung stray points inflate the whole cloud's bounding box), but
+ * a median barely moves as long as most points are normally spaced. That median is then used
+ * to derive both the outlier-distance threshold and the smoothing radius, so the whole pass
+ * adapts to any cloud's own scale and density without user-tuned distance parameters.
+ *
+ * @param pointData A raw {numInstances, positions, colors} object as produced by parsePLY.
+ * @returns {{numInstances: number, positions: Float32Array, colors: Float32Array}} The
+ *          filtered, smoothed point cloud, in the same shape buildSplatObject expects.
+ */
+function denoisePointCloud(pointData) {
+    const count = pointData.numInstances;
+    const positions = pointData.positions;
+    const colors = pointData.colors;
+
+    if (count < 4) return pointData; // not enough points for neighborhood statistics to mean anything
+
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    for (let i = 0; i < count; i++) {
+        const x = positions[i * 3], y = positions[i * 3 + 1], z = positions[i * 3 + 2];
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+        if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+    }
+    const diagonal = Math.hypot(maxX - minX, maxY - minY, maxZ - minZ);
+    if (diagonal === 0) return pointData; // degenerate cloud (every point coincides)
+
+    // this cell size starts from a cube-root volume estimate, but real scans/splats are
+    // usually a thin surface shell rather than a uniform 3D fill, so that estimate badly
+    // undershoots true density (cells end up with dozens of points instead of a handful,
+    // making every neighbor search far slower than it needs to be). Refine it down so cells
+    // hold a small, roughly constant number of points regardless of the cloud's shape --
+    // the expanding-ring search in nearestNeighborDistSq means correctness never depended on
+    // this guess being exactly right, only its speed does.
+    let cellSize = diagonal / Math.cbrt(count);
+    let grid = buildPointGrid(positions, count, cellSize);
+    const DENOISE_TARGET_POINTS_PER_CELL = 4;
+    const avgPointsPerCell = count / grid.size;
+    if (avgPointsPerCell > DENOISE_TARGET_POINTS_PER_CELL * 2) {
+        cellSize *= Math.cbrt(DENOISE_TARGET_POINTS_PER_CELL / avgPointsPerCell);
+        grid = buildPointGrid(positions, count, cellSize);
+    }
+
+    // measure each point's OWN nearest-neighbor distance (a direct, local density signal)
+    // rather than relying on one global average, so a handful of far-flung outliers can't
+    // throw off how every other point gets judged
+    const nearestDistSq = new Float32Array(count);
+    for (let i = 0; i < count; i++) {
+        nearestDistSq[i] = nearestNeighborDistSq(positions, i, grid, cellSize);
+    }
+
+    const sortedDist = Float32Array.from(nearestDistSq, Math.sqrt).sort();
+    const medianDist = sortedDist[Math.floor(sortedDist.length / 2)];
+    // a median of exactly 0 means at least half the points are exact coincident duplicates
+    // (common from mesh-to-point-cloud conversion or repeated sensor returns at a fixed spot)
+    // -- treating ANY nonzero spacing as "an outlier" in that case would wipe out almost every
+    // legitimate, non-duplicated point, so bail out rather than risk destroying the cloud
+    if (medianDist === 0) return pointData;
+
+    const outlierDistSq = Math.pow(medianDist * DENOISE_OUTLIER_DISTANCE_FACTOR, 2);
+    const smoothRadius = medianDist * DENOISE_SMOOTH_RADIUS_FACTOR;
+    const smoothRadiusSq = smoothRadius * smoothRadius;
+    const smoothRings = Math.max(1, Math.ceil(smoothRadius / cellSize));
+
+    const isOutlier = new Uint8Array(count);
+    let keptCount = 0;
+    for (let i = 0; i < count; i++) {
+        if (nearestDistSq[i] > outlierDistSq) {
+            isOutlier[i] = 1;
+        } else {
+            keptCount++;
+        }
+    }
+
+    // write straight into exact-size output buffers instead of a full-size scratch array
+    // followed by a separate compaction pass -- outliers are skipped entirely rather than
+    // having a (wasted) smoothed position computed for them and then discarded
+    const keptPositions = new Float32Array(keptCount * 3);
+    const keptColors = new Float32Array(keptCount * 4);
+    let writeIdx = 0;
+
+    for (let i = 0; i < count; i++) {
+        if (isOutlier[i]) continue;
+
+        const xi = positions[i * 3], yi = positions[i * 3 + 1], zi = positions[i * 3 + 2];
+        const cx = Math.floor(xi / cellSize), cy = Math.floor(yi / cellSize), cz = Math.floor(zi / cellSize);
+        let sumX = 0, sumY = 0, sumZ = 0, neighborCount = 0;
+        for (let dx = -smoothRings; dx <= smoothRings; dx++) {
+            for (let dy = -smoothRings; dy <= smoothRings; dy++) {
+                for (let dz = -smoothRings; dz <= smoothRings; dz++) {
+                    const bucket = grid.get(gridCellKey(cx + dx, cy + dy, cz + dz));
+                    if (!bucket) continue;
+                    for (const j of bucket) {
+                        if (j === i || isOutlier[j]) continue; // don't let outliers pollute the smoothing average
+                        const dxp = positions[j * 3] - xi, dyp = positions[j * 3 + 1] - yi, dzp = positions[j * 3 + 2] - zi;
+                        if (dxp * dxp + dyp * dyp + dzp * dzp <= smoothRadiusSq) {
+                            sumX += positions[j * 3]; sumY += positions[j * 3 + 1]; sumZ += positions[j * 3 + 2];
+                            neighborCount++;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (neighborCount > 0) {
+            // pull the point partway toward its local neighborhood average to smooth out noise
+            // without fully flattening real geometric detail
+            keptPositions[writeIdx * 3 + 0] = xi + (sumX / neighborCount - xi) * DENOISE_SMOOTH_STRENGTH;
+            keptPositions[writeIdx * 3 + 1] = yi + (sumY / neighborCount - yi) * DENOISE_SMOOTH_STRENGTH;
+            keptPositions[writeIdx * 3 + 2] = zi + (sumZ / neighborCount - zi) * DENOISE_SMOOTH_STRENGTH;
+        } else {
+            keptPositions[writeIdx * 3 + 0] = xi;
+            keptPositions[writeIdx * 3 + 1] = yi;
+            keptPositions[writeIdx * 3 + 2] = zi;
+        }
+        keptColors[writeIdx * 4 + 0] = colors[i * 4 + 0];
+        keptColors[writeIdx * 4 + 1] = colors[i * 4 + 1];
+        keptColors[writeIdx * 4 + 2] = colors[i * 4 + 2];
+        keptColors[writeIdx * 4 + 3] = colors[i * 4 + 3];
+        writeIdx++;
+    }
+
+    return { numInstances: keptCount, positions: keptPositions, colors: keptColors };
+}
+
+/**
+ * (Re)builds the splat/point-cloud GPU buffers from lastPointCloudData, applying the denoise
+ * pass first if the toggle is on, and updates the status text to describe what's showing.
+ * Called both right after a point cloud finishes uploading and whenever the denoise toggle
+ * is flipped, so the two code paths can't drift out of sync with each other.
+ *
+ * @param loadedLabel Optional description of a just-finished upload (e.g. "point cloud: 500
+ *        points") to prefix the status text with; omitted when just reacting to a toggle flip.
+ */
+function applyPointCloudDisplay(loadedLabel) {
+    const statusEl = document.getElementById("plyStatus");
+
+    if (!lastPointCloudData) {
+        if (statusEl) {
+            statusEl.textContent = denoiseToggle
+                ? "Denoising enabled -- will apply to the next point cloud you load."
+                : "Denoising disabled.";
+        }
+        return;
+    }
+
+    const loadedPrefix = loadedLabel ? "Loaded " + loadedLabel + ". " : "";
+    // the point cloud persists (and can still be denoised) even while a paired mesh is being
+    // shown instead -- flag that here so the status text isn't misread as describing whatever
+    // is currently on screen
+    const viewNote = meshToggle ? " (Switch to Splat View to see it.)" : "";
+    if (denoiseToggle) {
+        const before = lastPointCloudData.numInstances;
+        const denoised = denoisePointCloud(lastPointCloudData);
+        buildSplatObject(denoised);
+        const removed = before - denoised.numInstances;
+        if (statusEl) {
+            statusEl.textContent = loadedPrefix + "Denoised: removed " + removed +
+                " stray point" + (removed === 1 ? "" : "s") + ", smoothed " + denoised.numInstances + " remaining." + viewNote;
+        }
+    } else {
+        buildSplatObject(lastPointCloudData);
+        if (statusEl) {
+            statusEl.textContent = loadedPrefix + (loadedPrefix ? "" : "Showing original point cloud (denoising off)." + viewNote);
+        }
+    }
+}
+
+/**
+ * Calls applyPointCloudDisplay, but when the denoise pass is about to run on a real point
+ * cloud, first paints an interim "Denoising..." status and defers the actual (synchronous,
+ * potentially multi-second on large clouds) work by one tick. JS being single-threaded means
+ * the status text would never actually be drawn before a long synchronous call returns --
+ * without this, clicking the toggle looks like it did nothing until the whole computation
+ * finishes.
+ *
+ * @param loadedLabel Same meaning as in applyPointCloudDisplay.
+ */
+function refreshPointCloudDisplay(loadedLabel) {
+    const statusEl = document.getElementById("plyStatus");
+    if (lastPointCloudData && denoiseToggle) {
+        if (statusEl) statusEl.textContent = (loadedLabel ? "Loaded " + loadedLabel + ". " : "") + "Denoising point cloud...";
+        setTimeout(() => applyPointCloudDisplay(loadedLabel), 0);
+    } else {
+        applyPointCloudDisplay(loadedLabel);
+    }
+}
+
+/**
+ * Flips the point-cloud denoise toggle, reflects it onto its button, and immediately
+ * re-displays whatever point cloud is currently loaded (denoised or original).
+ */
+function toggleDenoise() {
+    denoiseToggle = !denoiseToggle;
+    syncToggleButton("denoiseToggleBtn", denoiseToggle);
+    refreshPointCloudDisplay();
+}
+
 /**
  * A function that is used to buffer the data from a hat glb, primarily used for constructing
  * hats in the hierarchical model. A hat glb model can be referenced and replaced within this directory to
@@ -956,10 +1244,10 @@ window.onload = async function init() {
             meshToggle = true; // switch to mesh view since that's what was just uploaded
             if (statusEl) statusEl.textContent = "Loaded mesh: " + parsed.vertexCount + " vertices, " + parsed.faceCount + " faces.";
         } else {
-            buildSplatObject(parsed.data);
+            lastPointCloudData = parsed.data; // keep the raw data so the denoise toggle can reprocess it later
             meshToggle = false; // switch to splat view since that's what was just uploaded
-            const label = parsed.kind === 'splat' ? "Gaussian Splat" : "point cloud";
-            if (statusEl) statusEl.textContent = "Loaded " + label + ": " + parsed.vertexCount + " points.";
+            const label = (parsed.kind === 'splat' ? "Gaussian Splat" : "point cloud") + ": " + parsed.vertexCount + " points";
+            refreshPointCloudDisplay(label);
         }
         updateViewToggleLabel();
     })
@@ -1019,6 +1307,9 @@ window.onload = async function init() {
                 break;
             case "g": case "G": // turn glass on/off
                 flipToggle(glassToggleDef);
+                break;
+            case "n": case "N": // turn point-cloud denoising on/off
+                toggleDenoise();
                 break;
             case "ArrowUp": // move model forward
                 event.preventDefault();
@@ -1096,8 +1387,11 @@ window.onload = async function init() {
         });
     });
 
+    document.getElementById("denoiseToggleBtn").addEventListener("click", toggleDenoise);
+
     // reflect the initial default states of all toggles onto their buttons
     allToggleDefs.forEach(toggle => syncToggleButton(toggle.buttonId, toggle.get()));
+    syncToggleButton("denoiseToggleBtn", denoiseToggle);
     updateViewToggleLabel();
 
     // UI sliders
