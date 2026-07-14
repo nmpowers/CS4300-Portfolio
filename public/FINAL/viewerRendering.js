@@ -15,6 +15,7 @@ var camX = 0.0;
 var camY = 0.0;
 var camZ = 2.0;
 var flySpeed = 0.2;
+var rotateSpeed = 3.0; // degrees per keypress tick for keyboard-driven model rotation
 
 // Model transformation vars
 var dragging = false;
@@ -1299,11 +1300,29 @@ window.onload = async function init() {
             case "d" : case "D": // move cam right
                 camX += flySpeed;
                 break;
-            case "q" : case "Q": // move cam down
+            case "r" : case "R": // move cam down
                 camY -= flySpeed;
                 break;
-            case "e" : case "E": // move cam up
+            case "f" : case "F": // move cam up
                 camY += flySpeed;
+                break;
+            case "q" : case "Q": // rotate model around Z axis, one direction
+                modelRotationZ -= rotateSpeed;
+                break;
+            case "e" : case "E": // rotate model around Z axis, opposite direction
+                modelRotationZ += rotateSpeed;
+                break;
+            case "z" : case "Z": // rotate model around Y axis, one direction
+                modelRotationY -= rotateSpeed;
+                break;
+            case "x" : case "X": // rotate model around Y axis, opposite direction
+                modelRotationY += rotateSpeed;
+                break;
+            case "c" : case "C": // rotate model around X axis, one direction
+                modelRotationX -= rotateSpeed;
+                break;
+            case "v" : case "V": // rotate model around X axis, opposite direction
+                modelRotationX += rotateSpeed;
                 break;
             case "g": case "G": // turn glass on/off
                 flipToggle(glassToggleDef);
