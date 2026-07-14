@@ -18,13 +18,17 @@ so that the tester/grader does not need access to this API to use the viewer and
 
 A refresher of controls:
 * WASD - Side to Side Camera Movement
-* E/Q - Up-Down Camera Movement
+* R/F - Up-Down Camera Movement
 * Arrow Keys - Model translation
+* Q/E - Rotate model around Z axis
+* Z/X - Rotate model around Y axis
+* C/V - Rotate model around X axis
 * Mouse Drag and Click - Model X-Y Rotation
 * Shift Mouse Drag and Click - Locked Z-Axis Rotation
 * L - Toggle light
 * K - Toggle Shadows
 * G - Toggle Mesh glass mode
+* N - Toggle point cloud denoising
 * 1 - Toggle Diffuse Lighting
 * 2 - Toggle Specular Highlights
 
